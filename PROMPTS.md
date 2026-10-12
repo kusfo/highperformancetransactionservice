@@ -13,3 +13,15 @@ OK, I'll clarify some of the questions: 1. Balance policy: Not allow negative ba
 ## 3. Declined Operation Retries
 
 Clarifyin 2. Yes, a retry with the same operationID should give a decline. We consider that the frontend only reuses the operationID when it's retrying automatically, new user interactions generate a new operation id.
+
+## 4. Account Service and Ownership
+
+Clarifying 3., we should have another service, for Accounts, that allows CRUD operations for accounts. All accounts start with a balance of 0. A user can have multiple accounts. An operation can only be executed against an account that is owned for the user currently authorised (logged in)
+
+## 5. Account Updates and Closure
+
+Confirming behaviour for the account service: The service assigns unique account numbers. No transfer of ownership is on scope for now. Updates cannot change balance, number or owner. Account deletion actually only disabled the account, so no new operations can be executed over it, but you can list transactions. Closure with remaining balance should autogenerate a withdrawal operation with the remaining balance.
+
+## 6. External Withdrawals and Reactivation
+
+We can assume that the withdrwal operation means that money is returned to an external destination, but for now this is transaparent to us. Regarding reactivation, we could reactivate an account, but it'll not cause any further change in the balance
