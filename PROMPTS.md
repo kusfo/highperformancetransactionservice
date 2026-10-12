@@ -53,3 +53,27 @@ I also accept repeated or concurrent closure requests return the disabled state 
 ## 13. Remaining Closure Requirements
 
 And finally, I also accepte the two remaining proposals on Disabling and Closing Accounts.
+
+## 14. Currency and Numeric Limits
+
+Regarding 4., currency is a virtual currency that have minor units as cents, similar to Euros and Dollars. It's the only currency supported. Zero transactions are not valid. Maximum amount could be maximum value that can be represented on 32 bits. In case of value overflow for the account, the service should handle the error and return an error code.
+
+## 15. Account Balance Cap
+
+Yes, cap balances at 2,147,483,647 cents
+
+## 16. Account Service API Proposals
+
+Regarging doubts stated in Account Service Proposed API, I accept all the proposals marked as **proposed**
+
+## 17. Account Access Restrictions
+
+I also accept the **proposed** for account reads, updates, deletion and account lists on the Account service only for authenticated user's accounts.
+
+## 18. Validation and Error Contracts
+
+I also accept all the proposals on Proposed Validation and Errors
+
+## 19. Concurrency and Idempotency
+
+I also accept the proposals on Concurrency and Idempotency

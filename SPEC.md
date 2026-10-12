@@ -21,7 +21,15 @@ Apply a signed integer amount to one account balance. Positive amounts credit th
 }
 ```
 
-Account numbers are opaque strings; preserve leading zeros. **Proposed:** amounts represent integer minor currency units, never floating-point values. Each account has one fixed currency; currency conversion and transfers between accounts are outside the currently described scope. Currency, numeric limits, and treatment of zero amounts remain open.
+Account numbers are opaque strings; preserve leading zeros.
+
+### Currency and Numeric Limits
+
+The service supports exactly one virtual currency, with 100 cents per whole unit. All amounts and balances are expressed as integer cents, never floating-point values. For example, `amount: -250` withdraws 2.50 virtual currency units. Clients do not select a currency. Currency conversion and transfers between accounts are outside the currently described scope.
+
+Zero transaction amounts are invalid. **Proposed interpretation of the 32-bit limit:** transaction amounts are signed 32-bit integers, from `-2147483648` to `2147483647`, excluding zero. The maximum credit is therefore 2,147,483,647 cents. Out-of-range requests must be rejected without truncation or wraparound.
+
+Account balances must remain within 0 to 2,147,483,647 cents inclusive (a maximum of 21,474,836.47 virtual currency units). A credit that would exceed this cap must be rejected without changing the balance. This cap allows the entire balance to be withdrawn in one closure operation.
 
 ### Operation and Transaction Identity
 
@@ -41,17 +49,17 @@ Checking available funds and applying the debit must be one atomic operation. Co
 
 - Concurrent requests with different `operationId` values are distinct attempts. Each successful attempt applies once, without lost balance updates; each debit must satisfy the atomic funds check.
 - Requests with the same `operationId`, account, and amount must apply at most once, including concurrent duplicates and retries after a lost response.
-- Reusing an `operationId` with a different amount returns an error. **Proposed:** reuse for a different account also returns `409 Conflict`, because operation IDs are globally unique.
-- **Proposed:** the funds check, balance change, transaction creation, and successful operation outcome are atomic and durable. A reported success survives a service restart; a retry cannot apply it again. A failure must not leave a balance change without its recorded outcome.
-- Authorization must be checked on every request, including replays. Possession of an operation or transaction ID does not authorize access to its result. **Proposed:** global ID conflicts must not disclose another user's payload or result.
+- Reusing an `operationId` with a different amount returns an error. reuse for a different account also returns `409 Conflict`, because operation IDs are globally unique.
+- the funds check, balance change, transaction creation, and successful operation outcome are atomic and durable. A reported success survives a service restart; a retry cannot apply it again. A failure must not leave a balance change without its recorded outcome.
+- Authorization must be checked on every request, including replays. Possession of an operation or transaction ID does not authorize access to its result. global ID conflicts must not disclose another user's payload or result.
 - An operation declined for insufficient funds retains its declined outcome. Retrying the same `operationId` returns the original decline, even if funds have since arrived, and does not change the balance. A new user interaction creates a new `operationId` and is evaluated against the balance at that time.
 - Retention duration for operation IDs and outcomes, handling of invalid or unauthorized requests, and behavior of duplicates while the original is still processing remain open.
 
-### Proposed Validation and Errors
+### Validation and Errors
 
-Reject malformed UUIDs, non-integer amounts, missing required fields, and values outside the supported range. Reject arithmetic overflow without changing the balance. **Proposed:** return `400` for invalid requests, `401` for missing or invalid authentication, `404` for missing or inaccessible accounts, and `409` for conflicting transaction payloads. Using the same response for missing and inaccessible accounts avoids exposing another user's account existence.
+Reject malformed UUIDs, non-integer or zero amounts, missing required fields, and values outside the supported range. If applying an amount would exceed the supported account balance range, return an error without changing the balance or creating a successful transaction. The range check and balance update must be atomic; arithmetic must not wrap or truncate. return `422 Unprocessable Content` with code `BALANCE_OVERFLOW` and the request's `operationId`. Whether this decline is retained for retries remains open. return `400` for invalid requests, `401` for missing or invalid authentication, `404` for missing or inaccessible accounts, and `409` for conflicting transaction payloads. Using the same response for missing and inaccessible accounts avoids exposing another user's account existence.
 
-Use a consistent error body containing a stable `code` and readable `message`. **Proposed:** insufficient funds returns `422 Unprocessable Content` with code `INSUFFICIENT_FUNDS` and the request's `operationId`. A timeout or `5xx` does not prove that a transaction failed; clients should retry using the same `operationId` and payload.
+Use a consistent error body containing a stable `code` and readable `message`. insufficient funds returns `422 Unprocessable Content` with code `INSUFFICIENT_FUNDS` and the request's `operationId`. A timeout or `5xx` does not prove that a transaction failed; clients should retry using the same `operationId` and payload.
 
 ## Account Service
 
@@ -59,18 +67,18 @@ Use a consistent error body containing a stable `code` and readable `message`. *
 
 Provide create, read, update, and delete operations for accounts. A user can own multiple accounts. Every new account starts with a balance of exactly zero; account creation cannot specify an opening balance.
 
-Balance operations are permitted only for the currently authenticated owner. **Proposed:** the same ownership restriction applies to account reads, updates, and deletion, and account lists contain only the authenticated user's accounts. On creation, ownership is assigned from the authenticated identity rather than a caller-supplied `userId`.
+Balance operations are permitted only for the currently authenticated owner. The same ownership restriction applies to account reads, updates, and deletion, and account lists contain only the authenticated user's accounts. On creation, ownership is assigned from the authenticated identity rather than a caller-supplied `userId`.
 
-### Proposed API
+### API
 
 | Operation | Endpoint | Request / response |
 | --- | --- | --- |
-| Create account | `POST /accounts` | Accept account metadata; return `201` with `accountNumber`, `userId`, and `balance: 0`. Supported metadata and currency fields remain open. |
+| Create account | `POST /accounts` | Accept account metadata; return `201` with `accountNumber`, `userId`, and `balance: 0`. Supported metadata remains open; the single virtual currency is implicit. |
 | List own accounts | `GET /accounts` | Return accounts owned by the authenticated user; pagination remains open. |
 | Read account | `GET /accounts/{accountNumber}` | Return account details and current balance to its owner. |
-| Update account | `PATCH /accounts/{accountNumber}` | **Proposed:** update metadata only, such as a display name. |
-| Disable account | `DELETE /accounts/{accountNumber}` | Disable the account and automatically withdraw any remaining balance. **Proposed:** return `200` with account status and the closure withdrawal IDs, if a withdrawal occurred. |
-| Reactivate account | **Proposed:** `POST /accounts/{accountNumber}/reactivation` | Restore an account to active status without changing its balance or creating a balance transaction. |
+| Update account | `PATCH /accounts/{accountNumber}` | update metadata only, such as a display name. |
+| Disable account | `DELETE /accounts/{accountNumber}` | Disable the account and automatically withdraw any remaining balance. return `200` with account status and the closure withdrawal IDs, if a withdrawal occurred. |
+| Reactivate account | `POST /accounts/{accountNumber}/reactivation` | Restore an account to active status without changing its balance or creating a balance transaction. |
 | List transactions | `GET /accounts/{accountNumber}/transactions` | Return transaction history to the owner, including after the account is disabled; pagination remains open. |
 
 The service assigns unique account numbers. Updates cannot change the balance, account number, or owner; ordinary balance changes use the Transaction service. Ownership transfer is outside the current scope. Editable metadata fields and shared ownership remain open.
@@ -131,13 +139,12 @@ Authenticated requests use `Authorization: Bearer <accessToken>`. Services valid
 
 ## Open Decisions and Edge Cases
 
-1. **Insufficient-funds response:** confirm the proposed `422` status and `INSUFFICIENT_FUNDS` error code. The nonnegative balance rule and atomic funds check are settled.
-2. **Idempotency retention:** global operation IDs and replay of insufficient-funds declines are settled. How long must operation IDs and outcomes be retained, and what happens to retries after that period? Do invalid or unauthorized requests reserve an ID?
-3. **Account lifecycle:** unique service-assigned account numbers, immutable balance/number/owner through account updates, no ownership transfer, disabling on deletion, retained transaction listing, and automatic withdrawal of remaining funds are settled. Confirm editable metadata, shared ownership, and ownership restrictions for CRUD. Atomic, durable closure is confirmed; closing a zero-balance account creates no withdrawal operation or transaction. Repeated or concurrent closure requests return the same closure result without another withdrawal; globally unique closure IDs are preserved for retries and history. Replay of completed balance operations after closure and `409 ACCOUNT_DISABLED` for new operations are confirmed. External return of funds is assumed, with payout handling outside the current scope. Reactivation is allowed without changing the balance. Owner-only reactivation, replay of prior operation outcomes, consistent lifecycle ordering, and protection against old disable retries are confirmed. Confirm the proposed reactivation endpoint and the API contract for identifying disable/reactivate requests across repeated lifecycle changes.
-4. **Money:** which currencies and minor units are supported? What are the maximum amount and balance? Is a zero transaction valid?
-5. **User lifecycle:** must email addresses be unique, and how are they normalized and verified? How are password reset, password changes, and email changes authorized?
-6. **Deletion:** reject user deletion while accounts have funds, close accounts, or deactivate the user? What happens to transaction history, outstanding requests, and future retries?
-7. **Authentication:** what are token expiry, refresh, logout, and revocation rules? Should deletion or password changes immediately invalidate existing tokens?
-8. **Pending duplicates:** should simultaneous duplicates wait for the original outcome or return an explicit processing response? How does a client retrieve an uncertain outcome using its `operationId` before it has a `transactionId`?
-9. **Read access:** account reads belong to the Account service. Transaction listing remains available on disabled accounts. Are individual transaction lookup and operation-outcome lookup endpoints also required, including lookup by `operationId` for declined or uncertain operations?
-10. **Performance:** what throughput, concurrent account access, and latency targets define “high performance”? Specify whether traffic is distributed across accounts or concentrated on a few accounts.
+1. **Idempotency retention:** global operation IDs and replay of insufficient-funds declines are settled. How long must operation IDs and outcomes be retained, and what happens to retries after that period? Do invalid or unauthorized requests reserve an ID?
+2. **Account lifecycle:** unique service-assigned account numbers, immutable balance/number/owner through account updates, no ownership transfer, disabling on deletion, retained transaction listing, and automatic withdrawal of remaining funds are settled. Confirm editable metadata and whether shared ownership is needed. Account reads, updates, deletion, and lists are restricted to the authenticated user's accounts. Atomic, durable closure is confirmed; closing a zero-balance account creates no withdrawal operation or transaction. Repeated or concurrent closure requests return the same closure result without another withdrawal; globally unique closure IDs are preserved for retries and history. Replay of completed balance operations after closure and `409 ACCOUNT_DISABLED` for new operations are confirmed. External return of funds is assumed, with payout handling outside the current scope. Reactivation is allowed without changing the balance. Owner-only reactivation, replay of prior operation outcomes, consistent lifecycle ordering, and protection against old disable retries are confirmed. The reactivation endpoint is confirmed as `POST /accounts/{accountNumber}/reactivation`. The API contract for identifying disable/reactivate requests across repeated lifecycle changes remains open.
+3. **Money:** a single virtual currency with integer cents, rejection of zero amounts, a 32-bit amount limit, and an error on account overflow are settled. The account balance cap is confirmed at 2,147,483,647 cents. The `422 BALANCE_OVERFLOW` response is confirmed. Confirm the signed 32-bit amount interpretation and whether overflow declines retain their outcome like insufficient-funds declines.
+4. **User lifecycle:** must email addresses be unique, and how are they normalized and verified? How are password reset, password changes, and email changes authorized?
+5. **Deletion:** reject user deletion while accounts have funds, close accounts, or deactivate the user? What happens to transaction history, outstanding requests, and future retries?
+6. **Authentication:** what are token expiry, refresh, logout, and revocation rules? Should deletion or password changes immediately invalidate existing tokens?
+7. **Pending duplicates:** should simultaneous duplicates wait for the original outcome or return an explicit processing response? How does a client retrieve an uncertain outcome using its `operationId` before it has a `transactionId`?
+8. **Read access:** account reads belong to the Account service. Transaction listing remains available on disabled accounts. Are individual transaction lookup and operation-outcome lookup endpoints also required, including lookup by `operationId` for declined or uncertain operations?
+9. **Performance:** what throughput, concurrent account access, and latency targets define “high performance”? Specify whether traffic is distributed across accounts or concentrated on a few accounts.
