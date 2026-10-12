@@ -77,3 +77,7 @@ I also accept all the proposals on Proposed Validation and Errors
 ## 19. Concurrency and Idempotency
 
 I also accept the proposals on Concurrency and Idempotency
+
+## 20. Implementation Planning and Technology Choices
+
+Let's start the PLAN.md file with our plan for implementing these services. I would like to use golang, and having everything ready to be deployed to any cloud, and even be able to test it locally. In order to achieve that, can you recommend me if we should rely in Docker or Kubernetes? Also, regarding the Database to be used. Any particular strength to choose dynamoDB, Mongo or Cassandra?
