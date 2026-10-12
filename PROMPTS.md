@@ -25,3 +25,15 @@ Confirming behaviour for the account service: The service assigns unique account
 ## 6. External Withdrawals and Reactivation
 
 We can assume that the withdrwal operation means that money is returned to an external destination, but for now this is transaparent to us. Regarding reactivation, we could reactivate an account, but it'll not cause any further change in the balance
+
+## 7. Credential Handling
+
+Regarding the user service, some more clarications: I accept the credentials being sent only by https, and the salting on the server, and no accepting client-provided saltedhashedpassword. Also, never log any password, stored hashes or access tokens.
+
+## 8. Credential Response Rules
+
+I also accept the other proposals in Credential Handling Requirements
+
+## 9. Bearer Authentication
+
+Also,I accept dealing with authenticated requests using `Authorization: Bearer <accessToken>`

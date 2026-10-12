@@ -119,9 +119,15 @@ Create, update, and delete users, and authenticate them for subsequent service c
 }
 ```
 
-**Proposed:** send credentials only over HTTPS and hash passwords on the server with a per-password salt and a password hashing algorithm. Do not accept a client-provided `saltedhashedpassword` as the stored credential: a reusable client hash can itself become a login credential. Never return or log passwords, stored hashes, or access tokens.
+### Credential Handling Requirements
 
-**Proposed:** authenticated requests use `Authorization: Bearer <accessToken>`. Services validate token authenticity and expiry; a caller-supplied user ID header alone is insufficient. Users may update or delete only their own profile. Login failures use a generic response that does not reveal whether an email exists.
+Credentials must be sent only over HTTPS. Passwords must be salted and hashed on the server using a per-password salt and a password hashing algorithm. Client-provided `saltedhashedpassword` values are not accepted as credentials or stored password hashes.
+
+Never log passwords, stored password hashes, or access tokens. This restriction applies to request and response logging, diagnostic output, and error reporting.
+
+Never return passwords or stored password hashes in API responses. Access tokens are returned only where required by the authentication contract, such as a successful login response.
+
+Authenticated requests use `Authorization: Bearer <accessToken>`. Services validate token authenticity and expiry; a caller-supplied user ID header alone is insufficient. Users may update or delete only their own profile. Login failures use a generic response that does not reveal whether an email exists.
 
 ## Open Decisions and Edge Cases
 
