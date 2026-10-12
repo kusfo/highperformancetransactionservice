@@ -81,3 +81,27 @@ I also accept the proposals on Concurrency and Idempotency
 ## 20. Implementation Planning and Technology Choices
 
 Let's start the PLAN.md file with our plan for implementing these services. I would like to use golang, and having everything ready to be deployed to any cloud, and even be able to test it locally. In order to achieve that, can you recommend me if we should rely in Docker or Kubernetes? Also, regarding the Database to be used. Any particular strength to choose dynamoDB, Mongo or Cassandra?
+
+## 21. Queued Transaction Processing
+
+In order to be able to handle a big load, we may need to queue incoming transactions. How we can take that into account so we don't have problems with idempotency? I can imagine accepting transactions with kind of pending status, and later on returning the real result once they've been processed? Should we split the transaction service into an inccoming request service and a proper transaction one that works over the queues?
+
+## 22. Operation Ordering and Pending Work on Closure
+
+Ideally operations should be executed in acceptance order. This is only relevant went a withdrawal may incur on negative balance if it's executed before a deposit. Regarding pending operations on a closed account, they should fail with a decline.
+
+## 23. Manual-Testing Frontend
+
+In order to test manually, we would need a frontend ui, where you can register the user, create or close accounts, and can deposit or withdraw money from the account. Let's include that in the plan.
+
+## 24. Remaining Clarifications Before Tasks
+
+Anything else I need to clarify before we start creating the tasks?
+
+## 25. Stack and Remaining Scope Decisions
+
+I confirm your proposed Technical Stack. I also accept Async API proposal. Idempotency retention and Lifecycle retries also looks good to me. For Account Scope, we can add a description as part of the editable metadata. Regarding user lifecycle, emails should be unique ids, you cannot register again with an already used email. Delete a username should only deactivate it, and it could be enabled again by hand (superusers out of scope for now). All transactions on deactivated users remain on the db. Regarding Authentication lifecycle, it should last 10 minutes. It can be revoked by hand (again, super users out of scope). For now, email recovery and verification out of scope. Operations already in the queue should succeed even if the token expires (they have been validated in the entry service before being queued). Regarding using symetric range, yes, let's do that to avoid one edge case. Regarding performance, we can refine once we can establish our expected traffic.
+
+## 26. Authentication Changes After Acceptance
+
+User deactivation or manual token revocation should not cancel queued operations, this should be checked only on entry point.
