@@ -37,3 +37,19 @@ I also accept the other proposals in Credential Handling Requirements
 ## 9. Bearer Authentication
 
 Also,I accept dealing with authenticated requests using `Authorization: Bearer <accessToken>`
+
+## 10. Reactivation Behavior
+
+Regarding Reactivation doubts, I accept the two proposals stated there.
+
+## 11. Disabled-Account Operations
+
+I also accept this: a retry of an already completed balance operation after closure returns its recorded outcome, subject to ownership checks, without executing a new operation. A new operation against a disabled account returns `409 Conflict` with code `ACCOUNT_DISABLED`. A disabled account may be reactivated without any change to its balance.
+
+## 12. Closure Retries and Identity
+
+I also accept repeated or concurrent closure requests return the disabled state and the same closure result without generating another withdrawal. The internally generated closure `operationId` and resulting `transactionId` are globally unique and preserved for retries and history.
+
+## 13. Remaining Closure Requirements
+
+And finally, I also accepte the two remaining proposals on Disabling and Closing Accounts.
