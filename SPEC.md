@@ -113,14 +113,16 @@ Concurrent disabling and reactivation requests must have a consistent order, wit
 
 Create, update, and delete users, and authenticate them for subsequent service calls. User identity and financial account identity are separate concepts. The Account service manages financial accounts and their ownership.
 
-### Proposed API
+### API
 
 | Operation | Endpoint | Request / response |
 | --- | --- | --- |
-| Register | `POST /users` | Accept `email` and `password`; return `201` with `userId`. |
-| Update own profile | `PATCH /users/{userId}` | Accept changed profile fields; permitted fields and credential-change rules remain open. |
+| Register | `POST /users` | Accept `email`, `password`, and optional `displayName`; return `201` with `userId`. |
+| Update own profile | `PATCH /users/{userId}` | Update only the authenticated user's `displayName`; email is immutable. |
 | Deactivate own user | `DELETE /users/{userId}` | Deactivate the user without deleting their transaction records. |
 | Login | `POST /sessions` | Accept `email` and `password`; return an access token and expiry. |
+| Change own password | `PUT /users/{userId}/password` | Verify current password, set new password, revoke sessions; return `204`. |
+| Logout | `DELETE /sessions/current` | Revoke current session; return `204`. |
 
 ```json
 {
@@ -131,7 +133,7 @@ Create, update, and delete users, and authenticate them for subsequent service c
 
 ### User Lifecycle
 
-Email is a unique registration/login identifier; retain the UUID `userId` as the internal user identity. An email already used by any user, including a deactivated user, cannot be registered again. Email normalization/case handling and permitted profile updates remain to be specified.
+Email is a unique registration/login identifier; retain the UUID `userId` as the internal user identity. An email already used by any user, including a deactivated user, cannot be registered again. For registration and login, trim surrounding ASCII whitespace and lowercase ASCII email addresses. Reject non-ASCII email addresses in the initial version. Email is immutable after registration; uniqueness uses this canonical form. The user's `displayName` is optional at registration and defaults to an empty string when omitted. When supplied at registration or updated by its owner, it must contain 1–100 Unicode characters. It need not be unique and does not affect login. It is separate from account display names.
 
 Deleting a user deactivates them rather than deleting their records. All their transactions remain in the database. Deactivated users cannot log in or make new authenticated requests. Users may be re-enabled manually; a superuser interface is outside scope. Deactivation does not imply account closure or automatic withdrawal. User deactivation does not cancel already accepted operations.
 
@@ -151,14 +153,13 @@ Authenticated requests use `Authorization: Bearer <accessToken>`. Services valid
 
 Access tokens expire 10 minutes after issuance and can be revoked manually. Revocation and user re-enablement need documented manual procedures; superuser APIs/UI are outside scope. Expired or revoked tokens cannot authorize new requests or status lookups.
 
-Authentication, token expiry/revocation, and user active status are checked at the authenticated HTTP entry point, including submissions, retries, and status lookups. Once an operation is durably accepted, token expiry, manual token revocation, or user deactivation does not cancel it. Workers use the identity validated at acceptance and do not revalidate token or user active status. Balance, ordering, and account-closure rules still apply, so acceptance does not guarantee success. Token refresh and password-change rules remain to be specified.
+Authentication, token expiry/revocation, and user active status are checked at the authenticated HTTP entry point, including submissions, retries, and status lookups. Once an operation is durably accepted, token expiry, manual token revocation, or user deactivation does not cancel it. Workers use the identity validated at acceptance and do not revalidate token or user active status. Balance, ordering, and account-closure rules still apply, so acceptance does not guarantee success. Use opaque cryptographically random bearer tokens; store only token hashes. There is no refresh token or refresh endpoint: log in again after ten minutes. `DELETE /sessions/current` revokes the current session. Password changes and user deactivation permanently revoke all existing sessions; manual re-enablement must not revive them. Password changes use owner-only `PUT /users/{userId}/password` with `currentPassword` and `newPassword`. Verify the current password; new passwords contain 12–128 Unicode characters, without mandatory character categories, trimming or normalization. Return `204 No Content` on success and revoke all existing sessions; login is required again. Accepted queued operations remain unaffected. The same new-password rules apply to registration.
 
 ## Remaining Decisions
 
-- Email normalization/case handling, permitted user profile updates, and password-change rules.
 - Precise lifecycle request-ID field/header and handling of nonaccepted disabled-account attempts.
 - Pagination and optional individual transaction lookup; operation lookup is required.
-- Refresh/logout contract, browser token handling, and manual administration procedures.
+- Browser token handling and manual administration procedures; opaque tokens, no refresh and current-session logout are confirmed.
 - Overload admission limits and responses. Performance targets are deferred until expected traffic is established.
 
 ## Asynchronous Operation Contract

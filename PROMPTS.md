@@ -145,3 +145,47 @@ Can you try to execute docker yourself now?
 ## 32. Independent T01 Validation
 
 Validate T01, please
+
+## 33. Commit and Push T01
+
+Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?
+
+## 34. Start T02
+
+Okey, can we start developing task T02?
+
+## 35. Email Contract Confirmation
+
+Regarding user contract, I accept the email suggestions
+
+## 36. Session Contract Confirmation
+
+Regarding sessions, I also accept the token management suggestionsç
+
+## 37. Display-Name Clarification
+
+what clarification do you need for display-name?
+
+## 38. User Display-Name Confirmation
+
+I accept your proposal regarding user displayName
+
+## 39. Password-Change Clarification
+
+what are the proposals for password-change rules?
+
+## 40. Password-Change Confirmation
+
+I accept your proposal for password-change
+
+## 41. Request T02 Implementation
+
+Let's start implementation for T02
+
+## 42. Start T06
+
+yes, start with t06
+
+## 43. Commit and Push T02 and T06
+
+Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?

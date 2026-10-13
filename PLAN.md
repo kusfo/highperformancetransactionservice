@@ -124,9 +124,8 @@ Benchmark distributed-account and hot-account workloads separately, recording th
 
 ## Remaining Implementation Decisions
 
-- Email normalization/case handling, allowed user profile changes, and password changes.
 - Lifecycle request-ID field/header, pagination, optional individual transaction lookup, and nonaccepted disabled-account attempt identity.
-- Token refresh/logout, frontend framework, browser token/session handling, and manual revocation/re-enablement procedures.
+- Frontend framework, browser token/session handling, and manual revocation/re-enablement procedures. Use opaque tokens with stored hashes, no refresh, current-session logout, and permanent session revocation on password change/deactivation.
 - Overload thresholds, first cloud environment, and backup/recovery objectives.
 
 Performance targets will be refined once expected traffic is established. Build repeatable benchmarks and report measured baselines without claiming an unagreed throughput target. Task creation can proceed with these remaining details captured as contract/design tasks before their dependent implementation.

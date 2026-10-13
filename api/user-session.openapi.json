@@ -1,0 +1,585 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "User and Session API",
+    "version": "0.1.0",
+    "description": "Confirmed T02 user/session contract. No recovery, verification, refresh or superuser routes. Runtime implementation follows in later tasks."
+  },
+  "servers": [
+    {
+      "url": "https://localhost"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/users": {
+      "post": {
+        "operationId": "registerUser",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              },
+              "examples": {
+                "withoutName": {
+                  "value": {
+                    "email": "person@example.com",
+                    "password": "example-only-password"
+                  }
+                },
+                "withName": {
+                  "value": {
+                    "email": "person@example.com",
+                    "password": "example-only-password",
+                    "displayName": "Example User"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationResult"
+                },
+                "example": {
+                  "userId": "550e8400-e29b-41d4-a716-446655440000"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body or email/password.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "INVALID_REQUEST",
+                  "message": "Invalid body or email/password."
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "EMAIL_ALREADY_USED, including inactive users.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "EMAIL_ALREADY_USED",
+                  "message": "EMAIL_ALREADY_USED, including inactive users."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions": {
+      "post": {
+        "operationId": "login",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              },
+              "example": {
+                "email": "person@example.com",
+                "password": "example-only-password"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session issued. Set Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                },
+                "example": {
+                  "accessToken": "fictitious-example-token-not-a-real-secret",
+                  "tokenType": "Bearer",
+                  "expiresIn": 600,
+                  "expiresAt": "2026-10-13T12:10:00Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "INVALID_REQUEST",
+                  "message": "Malformed request."
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "INVALID_CREDENTIALS for unknown email, wrong password or inactive user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "INVALID_CREDENTIALS",
+                  "message": "INVALID_CREDENTIALS for unknown email, wrong password or inactive user."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{userId}": {
+      "parameters": [
+        {
+          "name": "userId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "patch": {
+        "operationId": "updateProfile",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileUpdate"
+              },
+              "example": {
+                "displayName": "Example User"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated own profile.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                },
+                "example": {
+                  "userId": "550e8400-e29b-41d4-a716-446655440000",
+                  "email": "person@example.com",
+                  "displayName": "Example User",
+                  "active": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid fields or empty update.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "INVALID_REQUEST",
+                  "message": "Invalid fields or empty update."
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication rejected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "UNAUTHORIZED",
+                  "message": "Authentication rejected."
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User missing or not owned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "NOT_FOUND",
+                  "message": "User missing or not owned."
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deactivateUser",
+        "responses": {
+          "204": {
+            "description": "User deactivated; sessions revoked; records retained."
+          },
+          "401": {
+            "description": "Authentication rejected, including previously deactivated user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "UNAUTHORIZED",
+                  "message": "Authentication rejected, including previously deactivated user."
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User missing or not owned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "NOT_FOUND",
+                  "message": "User missing or not owned."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{userId}/password": {
+      "parameters": [
+        {
+          "name": "userId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "put": {
+        "operationId": "changePassword",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChange"
+              },
+              "example": {
+                "currentPassword": "example-only-password",
+                "newPassword": "another-example-password"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Password changed; all existing sessions revoked. Login again."
+          },
+          "400": {
+            "description": "Invalid new password.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "INVALID_REQUEST",
+                  "message": "Invalid new password."
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication rejected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "UNAUTHORIZED",
+                  "message": "Authentication rejected."
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "INVALID_CURRENT_PASSWORD.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "INVALID_CURRENT_PASSWORD",
+                  "message": "INVALID_CURRENT_PASSWORD."
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User missing or not owned.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "NOT_FOUND",
+                  "message": "User missing or not owned."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/current": {
+      "delete": {
+        "operationId": "logout",
+        "responses": {
+          "204": {
+            "description": "Current session revoked. Queued operations unchanged."
+          },
+          "401": {
+            "description": "Authentication rejected; already revoked token cannot authorize retries.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "UNAUTHORIZED",
+                  "message": "Authentication rejected; already revoked token cannot authorize retries."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Opaque token; ten-minute expiry; token hashes stored server-side."
+      }
+    },
+    "schemas": {
+      "RegisterRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "description": "trim surrounding ASCII whitespace and lowercase ASCII input; reject non-ASCII email. Email is immutable."
+          },
+          "password": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 128,
+            "writeOnly": true,
+            "description": "no normalization, trimming or character category requirements."
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Optional at registration; omitted value defaults to empty string. Nonunique, separate from account names."
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "LoginRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "description": "trim surrounding ASCII whitespace and lowercase ASCII input; reject non-ASCII email. Email is immutable."
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "User": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "maxLength": 254,
+            "description": "trim surrounding ASCII whitespace and lowercase ASCII input; reject non-ASCII email. Email is immutable."
+          },
+          "displayName": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Empty if omitted at registration; otherwise 1\u2013100 characters."
+          },
+          "active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "userId",
+          "email",
+          "displayName",
+          "active"
+        ]
+      },
+      "RegistrationResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "userId"
+        ]
+      },
+      "ProfileUpdate": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "required": [
+          "displayName"
+        ]
+      },
+      "PasswordChange": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "writeOnly": true
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 128,
+            "writeOnly": true,
+            "description": "no normalization, trimming or character category requirements."
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ]
+      },
+      "Session": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "opaque cryptographically random token; store only token hash.",
+            "minLength": 1
+          },
+          "tokenType": {
+            "const": "Bearer"
+          },
+          "expiresIn": {
+            "const": 600
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "accessToken",
+          "tokenType",
+          "expiresIn",
+          "expiresAt"
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ]
+      }
+    }
+  }
+}

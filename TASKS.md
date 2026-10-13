@@ -26,11 +26,13 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 ### T02 — User and session contract
 
-- [ ] Complete
+- [x] Complete
 
-**Depends on:** {deps}.
+**Depends on:** —.
 **Deliver:** Resolve email normalization, profile/password updates, refresh/logout and token representation; document ten-minute expiry and manual administration.
 **Verify:** Record decisions in SPEC.md; validate OpenAPI user/session examples; no recovery, verification or superuser endpoints.
+
+**Validation (2026-10-13):** All T02 email, displayName, password-change and session decisions confirmed and recorded in SPEC.md. `api/user-session.openapi.json` and `docs/user-session-contract.md` define the contract and operator-only administration scope. Disposable Python-container validation passed OpenAPI structure, 22 embedded request/response examples, nine invalid-payload cases and Unicode password boundaries; exit 0. No recovery, verification, refresh or superuser endpoints. `git diff --check` passed. Runtime behavior is reserved for later tasks.
 
 ### T03 — Account and lifecycle contract
 
@@ -58,11 +60,13 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 ### T06 — PostgreSQL test harness and migration runner
 
-- [ ] Complete
+- [x] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T01.
 **Deliver:** Add isolated database fixtures, migration execution and explicit test cleanup.
 **Verify:** Apply migrations to a fresh database and rerun safely; integration tests leave no shared state.
+
+**Validation (2026-10-13):** `scripts/test-postgres.sh` passed against a disposable PostgreSQL 17 container: formatting, `go vet`, regular Go tests, all five binary builds and race-enabled integration tests. Covered fresh application, rerun, append, whole-batch rollback, changed/missing/duplicate/invalid/out-of-order migrations, concurrent runners and fixture cleanup/isolation. Script verified zero remaining fixture databases, then removed its dedicated containers/network; exit 0. `sh -n scripts/test-postgres.sh` and `git diff --check` passed. Driver and checksums are pinned in go.mod/go.sum; domain schemas remain in later tasks.
 
 ### T07 — HTTP runtime and redacted logging
 
