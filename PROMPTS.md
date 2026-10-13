@@ -105,3 +105,7 @@ I confirm your proposed Technical Stack. I also accept Async API proposal. Idemp
 ## 26. Authentication Changes After Acceptance
 
 User deactivation or manual token revocation should not cancel queued operations, this should be checked only on entry point.
+
+## 27. Implementation Task Breakdown
+
+Perfect, we can start creating tasks on TASKS.md. Please, maintain the tasks small and trackable, and ensure they can be implemented and tested indepedently
