@@ -2,7 +2,7 @@
 
 ## Tracking and Completion Rules
 
-`SPEC.md` defines behavior; `PLAN.md` defines the implementation direction. All tasks below are unstarted. Check a box only when its deliverable and acceptance checks are complete; add evidence (test command/result or reviewed artifact) beneath its task ID. Record blockers rather than marking partial work complete.
+`SPEC.md` defines behavior; `PLAN.md` defines the implementation direction. Tasks remain unchecked until their acceptance checks pass. Check a box only when its deliverable and acceptance checks are complete; add evidence (test command/result or reviewed artifact) beneath its task ID. Record blockers rather than marking partial work complete.
 
 Each task is one bounded change suitable for its own review. Dependencies are prerequisites, not a requirement to build the whole application: use isolated database/broker fixtures, handler fakes, or frontend API fixtures for validation. Do not substitute mocks for database concurrency checks. Later integration tasks verify the assembled system. Split a task before implementation if it expands beyond one focused change.
 
@@ -16,11 +16,13 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 ### T01 — Go module and development commands
 
-- [ ] Complete
+- [x] Complete
 
-**Depends on:** {deps}.
+**Depends on:** —.
 **Deliver:** Create module, service/worker entry-point skeletons, formatting and build commands.
 **Verify:** Build each binary; run Go tests from a clean checkout.
+
+**Validation (2026-10-13):** Assistant independently ran `make check` in a fresh `golang:1.26` container (Go 1.26.9), using only a source copy of `cmd/`, `go.mod` and `Makefile`, without existing binaries or build cache. Formatting, `go vet ./...`, `go test ./...`, all four builds and all four binary startup checks passed; container exited 0. Packages report `[no test files]`, as expected for these skeletons. `git diff --check` passed. This validates the current uncommitted source in isolation, rather than a committed Git checkout. Docker Desktop could not bind-mount the sandbox temporary directory; source was streamed into the container instead.
 
 ### T02 — User and session contract
 

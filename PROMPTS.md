@@ -109,3 +109,39 @@ User deactivation or manual token revocation should not cancel queued operations
 ## 27. Implementation Task Breakdown
 
 Perfect, we can start creating tasks on TASKS.md. Please, maintain the tasks small and trackable, and ensure they can be implemented and tested indepedently
+
+## 28. Implement T01
+
+Ok, time to start implementing. Let's start with task T01. Keep me updated on the results for the validation
+
+## 29. Retry T01 Validation
+
+I've started the docker Daemon, can you start again?
+
+## 30. T01 Validation Results
+
+This is the output from my console: go vet ./...
+go test ./...
+?   	github.com/kusfo/highperformancetransactionservice/cmd/account	[no test files]
+?   	github.com/kusfo/highperformancetransactionservice/cmd/transaction	[no test files]
+?   	github.com/kusfo/highperformancetransactionservice/cmd/transaction-worker	[no test files]
+?   	github.com/kusfo/highperformancetransactionservice/cmd/user	[no test files]
+mkdir -p bin
+go build -trimpath -o bin/user ./cmd/user
+mkdir -p bin
+go build -trimpath -o bin/account ./cmd/account
+mkdir -p bin
+go build -trimpath -o bin/transaction ./cmd/transaction
+mkdir -p bin
+go build -trimpath -o bin/transaction-worker ./cmd/transaction-worker
+user: scaffold only; runtime not implemented
+account: scaffold only; runtime not implemented
+transaction: scaffold only; runtime not implemented
+
+## 31. Docker Access Check
+
+Can you try to execute docker yourself now?
+
+## 32. Independent T01 Validation
+
+Validate T01, please
