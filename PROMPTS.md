@@ -189,3 +189,15 @@ yes, start with t06
 ## 43. Commit and Push T02 and T06
 
 Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?
+
+## 44. Next Task Recommendation
+
+which task do you suggest to implement now?
+
+## 45. Start T07
+
+Let's implement T07
+
+## 46. Commit and Push T07
+
+Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?

@@ -1,8 +1,37 @@
-// Command transaction is the entry-point scaffold for the transaction process.
+// Command transaction runs the shared HTTP runtime; domain endpoints follow later.
 package main
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/kusfo/highperformancetransactionservice/src/httpapi"
+)
+
+func run() error {
+	cfg, err := httpapi.LoadConfig(os.Getenv)
+	if err != nil {
+		return err
+	}
+	routes := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		httpapi.WriteError(w, 404, "NOT_FOUND", "Resource not found.")
+	})
+	runtime, err := httpapi.New(cfg, routes, os.Stdout)
+	if err != nil {
+		return err
+	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	return runtime.Run(ctx)
+}
 
 func main() {
-	fmt.Println("transaction: scaffold only; runtime not implemented")
+	if err := run(); err != nil {
+		fmt.Fprintln(os.Stderr, "transaction: HTTP startup or shutdown failed; check configuration")
+		os.Exit(1)
+	}
 }

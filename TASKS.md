@@ -70,11 +70,14 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 ### T07 — HTTP runtime and redacted logging
 
-- [ ] Complete
+- [x] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T01.
 **Deliver:** Add configuration, bounded HTTP requests, stable errors, structured logging and graceful shutdown.
 **Verify:** Handler tests verify malformed requests, limits, cancellation and absence of credentials/tokens in captured logs.
+
+
+**Validation (2026-10-13):** Fresh Go-container `make check` passed formatting, vet, all package tests and all five binary builds. `go test -race -count=1 -v ./src/httpapi` passed eight tests with configuration/JSON/cancellation subcases, real TLS graceful/forced shutdown and listener cleanup. Captured logs/responses exclude submitted passwords, token-bearing paths/queries/headers/cookies, hashes and panic values. Fixed an empty client-cancellation response discovered on the first run; final validation exited 0. `git diff --check` passed. Settings and runtime limitations documented in docs/http-runtime.md; domain handlers remain later tasks.
 
 
 ## User and authentication

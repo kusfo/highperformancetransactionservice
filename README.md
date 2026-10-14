@@ -11,7 +11,7 @@ From the repository root:
 
 | Command | Purpose |
 | --- | --- |
-| `make build` | Build the four service/worker scaffolds and migration CLI into `bin/`. |
+| `make build` | Build the three HTTP services, worker scaffold and migration CLI into `bin/`. |
 | `make fmt` | Apply Go's standard formatting. |
 | `make fmt-check` | Detect formatting changes; applies formatting and fails if files changed. |
 | `make test` | Run `go test ./...`. |
@@ -20,18 +20,22 @@ From the repository root:
 | `make clean` | Remove the generated binaries. |
 
 Build one process with `make bin/user` (or `bin/account`, `bin/transaction`,
-`bin/transaction-worker`). Run a scaffold with `./bin/user`, or use
-`go run ./cmd/user` directly. Each scaffold prints its name and exits; HTTP
-servers and queue consumers are later tasks. There are no test cases yet;
-`go test ./...` currently checks that packages compile.
+`bin/transaction-worker`, or `bin/migrate`). Run an HTTP service with `./bin/user`
+(or `go run ./cmd/user`) after setting
+`HTTP_TLS_CERT_FILE` and `HTTP_TLS_KEY_FILE`. Account and Transaction use the
+same configuration; set different `HTTP_ADDR` ports to run them together. Domain
+endpoints are later tasks; current routes return JSON 404 errors. The worker
+still prints its scaffold message and exits. See [HTTP runtime settings](docs/http-runtime.md).
+`go test ./...` now includes isolated HTTP runtime tests.
 
 The entry points live under `cmd/`. Application code will live under `src/`,
 integration tests under `tests/`, contracts under `api/`, and deployment assets
 under `deploy/` as their tasks are implemented. `SPEC.md`, `PLAN.md`, and
 `TASKS.md` record requirements, implementation direction, and progress.
 
-To validate a clean checkout, run `make check`, then execute each binary in
-`bin/`. PostgreSQL, RabbitMQ, and Docker are not needed for these skeletons.
+To validate a clean checkout, run `make check`, then run the HTTP services with
+configured TLS files and the worker scaffold. With Go installed, these checks
+do not need PostgreSQL, RabbitMQ, or Docker.
 
 
 ## PostgreSQL migrations and integration tests
