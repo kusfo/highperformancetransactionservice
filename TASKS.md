@@ -84,11 +84,13 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 ### T08 — User schema and repository
 
-- [ ] Complete
+- [x] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T02, T06.
 **Deliver:** Add unique normalized email, password hash and active-state persistence; keep used emails reserved.
 **Verify:** Database tests reject concurrent duplicate registration, including emails belonging to inactive users.
+
+**Validation (2026-10-15):** `scripts/test-postgres.sh` passed formatting, vet, regular unit tests, all five builds and race-enabled PostgreSQL 17 integration tests (exit 0). Eight concurrent registration attempts produced one user and duplicate-email sentinels for the others. Verified canonical email lookup/reservation after deactivation, reactivation, retained hashes, display-name/schema constraints, missing users and cancellation. Added an ASCII-before-case-folding regression test and credential serialization/formatting checks. Migration reruns and existing migration tests passed; no fixture databases remained. `git diff --check` passed. HTTP registration, password hashing and session revocation remain later tasks.
 
 ### T09 — Password hashing component
 

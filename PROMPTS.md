@@ -201,3 +201,15 @@ Let's implement T07
 ## 46. Commit and Push T07
 
 Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?
+
+## 47. Next Task After T07
+
+which task do you suggest to implement now?
+
+## 48. Start T08
+
+Let's implement T08
+
+## 49. Commit and Push T08
+
+Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?

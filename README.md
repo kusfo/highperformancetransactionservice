@@ -56,6 +56,6 @@ Without the integration build tag, normal `make test` does not need PostgreSQL.
 
 `make migrate` applies files from `migrations/` using `DATABASE_URL`. For a custom
 folder or timeout, use `./bin/migrate -dir path/to/sql -timeout 2m`. See
-[migration conventions](migrations/README.md). No domain schema files exist yet;
-the migration tests use independent fixture SQL. Database URLs must not be
+[migration conventions](migrations/README.md). The first migration creates user persistence; migration-runner tests also use
+independent fixture SQL. Database URLs must not be
 committed, printed or copied into issue reports.
