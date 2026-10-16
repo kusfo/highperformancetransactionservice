@@ -412,9 +412,15 @@
         "properties": {
           "email": {
             "type": "string",
-            "format": "email",
-            "maxLength": 254,
-            "description": "trim surrounding ASCII whitespace and lowercase ASCII input; reject non-ASCII email. Email is immutable."
+            "allOf": [
+              {
+                "pattern": "^[ \\t\\r\\n\\v\\f]*[!-~]{3,254}[ \\t\\r\\n\\v\\f]*$"
+              },
+              {
+                "pattern": "^[ \\t\\r\\n\\v\\f]*[^\\s@]+@[^\\s@]+[ \\t\\r\\n\\v\\f]*$"
+              }
+            ],
+            "description": "ASCII email input. Trim surrounding ASCII whitespace, validate the normalized address (3\u2013254 characters), and lowercase before lookup/storage. Email is immutable. Raw input is not format:email because normalization precedes address validation."
           },
           "password": {
             "type": "string",
@@ -441,9 +447,15 @@
         "properties": {
           "email": {
             "type": "string",
-            "format": "email",
-            "maxLength": 254,
-            "description": "trim surrounding ASCII whitespace and lowercase ASCII input; reject non-ASCII email. Email is immutable."
+            "allOf": [
+              {
+                "pattern": "^[ \\t\\r\\n\\v\\f]*[!-~]{3,254}[ \\t\\r\\n\\v\\f]*$"
+              },
+              {
+                "pattern": "^[ \\t\\r\\n\\v\\f]*[^\\s@]+@[^\\s@]+[ \\t\\r\\n\\v\\f]*$"
+              }
+            ],
+            "description": "ASCII email input. Trim surrounding ASCII whitespace, validate the normalized address (3\u2013254 characters), and lowercase before lookup/storage. Email is immutable. Raw input is not format:email because normalization precedes address validation."
           },
           "password": {
             "type": "string",
@@ -468,8 +480,13 @@
           "email": {
             "type": "string",
             "format": "email",
+            "minLength": 3,
             "maxLength": 254,
-            "description": "trim surrounding ASCII whitespace and lowercase ASCII input; reject non-ASCII email. Email is immutable."
+            "pattern": "^[\\x21-\\x3f\\x41-\\x7e]+@[\\x21-\\x3f\\x41-\\x7e]+$",
+            "not": {
+              "pattern": "[A-Z\\s]"
+            },
+            "description": "Canonical lowercase ASCII email; no surrounding whitespace."
           },
           "displayName": {
             "type": "string",

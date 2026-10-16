@@ -3,6 +3,7 @@ package users
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 )
@@ -31,5 +32,26 @@ func TestCredentialsDoNotSerializeOrPrintHashes(t *testing.T) {
 	}
 	if c.PasswordHash() != "secret-stored-hash" {
 		t.Fatal("authentication cannot access hash")
+	}
+}
+
+func TestSharedEmailContractCases(t *testing.T) {
+	data, err := os.ReadFile("../../tests/contracts/email_cases.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var cases []struct {
+		Email     string `json:"email"`
+		Valid     bool   `json:"valid"`
+		Canonical string `json:"canonical"`
+	}
+	if err := json.Unmarshal(data, &cases); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range cases {
+		canonical, err := NormalizeEmail(tc.Email)
+		if (err == nil) != tc.Valid || tc.Valid && canonical != tc.Canonical {
+			t.Errorf("normalization mismatch for %q", tc.Email)
+		}
 	}
 }

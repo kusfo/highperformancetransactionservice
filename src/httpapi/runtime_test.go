@@ -336,3 +336,43 @@ func TestInvalidTLSClosesListener(t *testing.T) {
 		t.Fatal("listener leaked")
 	}
 }
+
+func TestPanicDiscardsBufferedResponse(t *testing.T) {
+	for _, mode := range []string{"headers", "status", "body"} {
+		t.Run(mode, func(t *testing.T) {
+			var logs bytes.Buffer
+			handler := handlerForTest(t, configForTest(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Set-Cookie", "session=secret-header-token")
+				w.Header().Set("Content-Type", "text/plain")
+				if mode == "status" {
+					w.WriteHeader(201)
+				}
+				if mode == "body" {
+					WriteJSON(w, 201, map[string]string{"accessToken": "secret-response-token"})
+				}
+				panic("secret-panic-hash")
+			}), &logs)
+			response := httptest.NewRecorder()
+			handler.ServeHTTP(response, httptest.NewRequest("POST", "https://example.com/", nil))
+			if response.Code != 500 {
+				t.Fatalf("success survived panic: %d", response.Code)
+			}
+			var result Error
+			if err := json.Unmarshal(response.Body.Bytes(), &result); err != nil || result.Code != "INTERNAL_ERROR" {
+				t.Fatalf("not one JSON error: %q", response.Body.String())
+			}
+			if response.Header().Get("Set-Cookie") != "" || response.Header().Get("Content-Type") != "application/json" || response.Header().Get("X-Request-ID") == "" {
+				t.Fatal("unsafe or missing response headers")
+			}
+			for _, secret := range []string{"secret-header-token", "secret-response-token", "secret-panic-hash"} {
+				if strings.Contains(response.Body.String()+response.Header().Get("Set-Cookie")+logs.String(), secret) {
+					t.Fatal("secret survived recovery")
+				}
+			}
+			var event map[string]any
+			if err := json.Unmarshal(bytes.TrimSpace(logs.Bytes()), &event); err != nil || event["status"] != float64(500) {
+				t.Fatal("incorrect panic status log")
+			}
+		})
+	}
+}

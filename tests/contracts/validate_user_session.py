@@ -55,3 +55,15 @@ for name, invalid in negative_cases:
 for length in (12, 128):
     schema_validator('RegisterRequest').validate({'email': 'person@example.com', 'password': '界' * length})
 print(f'{len(negative_cases)} negative cases and Unicode password boundary cases passed.')
+
+# Shared with Go NormalizeEmail tests: schema inputs and repository policy agree
+# for ASCII/case/whitespace and normalized-length regressions.
+email_cases = json.loads((root / 'tests/contracts/email_cases.json').read_text())
+for case in email_cases:
+    for name in ('RegisterRequest', 'LoginRequest'):
+        payload = {'email': case['email'], 'password': 'example-only-password'}
+        assert schema_validator(name).is_valid(payload) == case['valid'], (name, case['email'])
+    user = {'userId': '550e8400-e29b-41d4-a716-446655440000', 'email': case['email'], 'displayName': '', 'active': True}
+    canonical = case['valid'] and case['email'] == case['canonical']
+    assert schema_validator('User').is_valid(user) == canonical, case['email']
+print(f'{len(email_cases)} shared input/canonical-output email cases passed.')

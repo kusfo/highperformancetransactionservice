@@ -1,0 +1,63 @@
+[
+  {
+    "email": "person@example.com",
+    "valid": true,
+    "canonical": "person@example.com"
+  },
+  {
+    "email": " \tPerson+Tag@EXAMPLE.COM\r\n\u000b\f",
+    "valid": true,
+    "canonical": "person+tag@example.com"
+  },
+  {
+    "email": "\u00e9@example.com",
+    "valid": false
+  },
+  {
+    "email": "\u212a@example.com",
+    "valid": false
+  },
+  {
+    "email": "person@\u00e9xample.com",
+    "valid": false
+  },
+  {
+    "email": "\u00a0person@example.com",
+    "valid": false
+  },
+  {
+    "email": "per son@example.com",
+    "valid": false
+  },
+  {
+    "email": "person@@example.com",
+    "valid": false
+  },
+  {
+    "email": "no-at",
+    "valid": false
+  },
+  {
+    "email": "person@",
+    "valid": false
+  },
+  {
+    "email": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "valid": true,
+    "canonical": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  },
+  {
+    "email": " \taaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\r\n",
+    "valid": true,
+    "canonical": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+  },
+  {
+    "email": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "valid": false
+  },
+  {
+    "email": "person@example.com\n",
+    "valid": true,
+    "canonical": "person@example.com"
+  }
+]

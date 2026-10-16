@@ -213,3 +213,15 @@ Let's implement T08
 ## 49. Commit and Push T08
 
 Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?
+
+## 50. Review Implemented-Task Test Coverage
+
+can we review our tests, for the current already implemented tasks, to be sure we're covering what's expected? Are we missing something?
+
+## 51. Fix Initial Test Review Findings
+
+Let's first fix the first two gaps, and document the other 3 for next steps
+
+## 52. Commit and Push Test Review Fixes
+
+Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?

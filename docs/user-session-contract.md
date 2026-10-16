@@ -24,3 +24,5 @@ T16 will provide operator-only procedures for revoking a session or re-enabling 
 `api/user-session.openapi.json` documents request/response schemas and examples. All example credentials are fictitious. Validate the OpenAPI document, embedded request/response examples, and negative boundary cases with the command below. Email canonicalization, cross-field expiry consistency, authentication state changes, and ownership need behavioral tests in implementation tasks; schema validation alone cannot prove them.
 
 Run reproducible checks in a disposable Python environment: `python -m pip install -r tests/contracts/requirements.txt`, then `python tests/contracts/validate_user_session.py`.
+
+Email schema validation distinguishes raw, normalizable ASCII request input from canonical lowercase response output. `tests/contracts/email_cases.json` is shared with Go repository tests to cover Unicode rejection, whitespace/case handling and normalized-length boundaries.

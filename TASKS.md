@@ -499,6 +499,41 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 **Deliver:** Document local usage, cloud overlays, TLS/secrets, rollouts, safe queue replay and manual administration.
 **Verify:** Follow runbooks in disposable environments; explicitly list unresolved cloud/recovery sizing decisions.
 
+## Test Review Follow-ups
+
+These follow-ups cover the three deferred gaps from the 2026-10-16 review.
+The panic recovery and email contract fixes are recorded in the review document.
+
+### R01 — Prove lifecycle and migration concurrency overlap
+
+- [ ] Complete
+
+**Depends on:** T06, T07.
+**Deliver:** Synchronize graceful shutdown tests so the handler remains blocked after listener closure; synchronize migration tests so a second runner demonstrably waits on the first, including cancellation/retry.
+**Verify:** Tests fail if shutdown closes active requests immediately or migration serialization is removed; avoid relying on scheduler timing alone.
+
+### R02 — Add one complete local validation command
+
+- [ ] Complete
+
+**Depends on:** T02, T06, T07, T08.
+**Deliver:** Provide a documented command for OpenAPI/examples, formatting, vet, builds, race-enabled HTTP/user tests and real PostgreSQL integration; preserve container/fixture cleanup on failure.
+**Verify:** Run from an isolated source copy; failure in any check group produces nonzero status and no leftover test resources. CI wiring remains T54.
+
+### R03 — Extend boundary and operational test coverage
+
+- [ ] Complete
+
+**Depends on:** T01, T06, T07, T08.
+**Deliver:** Add the following independently runnable regression cases in small changes:
+
+- Service binary HTTPS startup/SIGTERM and missing-TLS configuration failure.
+- Migration CLI missing URL, invalid SQL, rerun and safe diagnostics; interrupted/failing fixture cleanup and empty migration directory.
+- Exact request-body limit, compressed-body rejection, real chunked requests, network header/read deadlines and plaintext rejection.
+- User name upper boundary, mixed-case concurrent attempts against active/inactive emails, storage-outage redaction, and explicit SQLSTATE/constraint assertions. Shared email length fixtures now cover the 254/255-character boundary.
+
+**Verify:** Each case reproduces its targeted failure independently, uses disposable resources, and passes with the documented behavior. Split into separately tracked subtasks when work begins; do not add tests for unimplemented domain endpoints.
+
 ## Deferred Scope
 
 External payout integration, superuser UI/API, email verification/recovery, shared ownership and ownership transfers are excluded. Performance targets will follow expected-traffic clarification. First-cloud provisioning and recovery sizing remain environment decisions, not implicit completion criteria for the portable deployment assets.

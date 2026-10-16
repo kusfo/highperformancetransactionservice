@@ -31,15 +31,9 @@ func New(cfg Config, routes http.Handler, output io.Writer) (*Runtime, error) {
 		return nil, errors.New("handler and log output are required")
 	}
 	logger := slog.New(slog.NewJSONHandler(output, nil))
-	safe := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		defer func() {
-			if recover() != nil {
-				WriteError(w, 500, "INTERNAL_ERROR", "An internal error occurred.")
-			}
-		}()
-		routes.ServeHTTP(w, r)
-	})
-	timed := http.TimeoutHandler(safe, cfg.RequestTimeout, `{"code":"REQUEST_TIMEOUT","message":"Request processing timed out."}`+"\n")
+	// TimeoutHandler buffers output and rethrows handler panics before committing
+	// that buffer. Recover outside it so partial successes and headers are discarded.
+	timed := http.TimeoutHandler(routes, cfg.RequestTimeout, `{"code":"REQUEST_TIMEOUT","message":"Request processing timed out."}`+"\n")
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		started := time.Now()
 		id := make([]byte, 16)
@@ -66,6 +60,11 @@ func New(cfg Config, routes http.Handler, output io.Writer) (*Runtime, error) {
 			return
 		}
 		r.Body = http.MaxBytesReader(record, r.Body, cfg.MaxBodyBytes)
+		defer func() {
+			if recover() != nil {
+				WriteError(record, 500, "INTERNAL_ERROR", "An internal error occurred.")
+			}
+		}()
 		timed.ServeHTTP(record, r)
 		// TimeoutHandler deliberately leaves cancellation responses empty. Add a
 		// fixed JSON body without changing the already-written status header.

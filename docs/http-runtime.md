@@ -55,7 +55,9 @@ Access logs allow only generated request ID, known HTTP method (unknown methods
 become `OTHER`), status and duration, plus standard JSON log timestamp/level.
 No headers, URL/path/query, body, response payload, raw exception or panic value
 is logged. Server diagnostics that can contain client input are suppressed;
-fixed lifecycle messages record startup, stopping and shutdown timeout.
+fixed lifecycle messages record startup, stopping and shutdown timeout. Panic
+recovery discards buffered handler headers/status/body and returns one safe 500
+JSON response; partially prepared success responses are never committed.
 
 SIGINT/SIGTERM stop accepting requests and drain in-flight work. After the drain
 timeout, the runtime cancels active contexts, closes connections and returns a
