@@ -116,3 +116,36 @@ panic-response and shared email regressions. OpenAPI validation passed structure
 14 shared email input/output cases. `git diff --check` passed. PostgreSQL
 integration was not rerun after these fixes because no database code or SQL
 changed; its successful review run is recorded above.
+
+## R01 Progress — 2026-10-18
+
+Shutdown tests now wait for listener closure and the server shutdown callback
+before asserting that the blocked request remains active and Serve has not
+returned. Releasing the handler must then yield a complete success response.
+Three race-enabled HTTP runs passed. Replacing Shutdown with immediate Close in
+a temporary source copy caused the test to fail, proving regression detection.
+
+Migration concurrency tests now hold the first runner inside a migration using
+a separate advisory gate and inspect pg_blocking_pids/pg_locks to confirm that
+the second runner waits on the first's advisory lock. Cases cover ordinary
+serialization and cancellation followed by retry on a fresh connection, with
+single application/history assertions. Database execution and the no-lock
+mutation check await Docker availability; R01 is not yet marked complete.
+
+Full `make check` passed with the temporary Go 1.26.9 toolchain, and integration-tagged tests compiled. Docker Desktop remained unreachable after the socket appeared, so actual database validation is still outstanding.
+
+## R01 Completion — 2026-10-18
+
+Docker validation is now complete. Full repository checks and PostgreSQL tests
+passed; both synchronization tests passed three additional race-enabled runs.
+Temporary source mutations (immediate Close instead of Shutdown, and removal of
+the migration advisory lock) each failed the intended test. The latter failed on
+an observed non-advisory wait, demonstrating that incidental table/transaction
+locking cannot satisfy the new test. Cancelled migration waiters left no committed
+history and fresh-connection retries applied no duplicate work. Fixture cleanup
+left zero test databases; validation exited 0. R01 is complete; R02/R03 remain open.
+
+Repeat normal validation with `make test-postgres`; targeted repetition uses
+`go test -race -count=3 -run TestTLSGracefulShutdown ./src/httpapi` and, against a
+disposable database, `go test -race -tags=integration -count=3 -run TestConcurrentRunners ./tests/integration`.
+Mutation checks were run only in temporary copies, never on production sources.

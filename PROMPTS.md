@@ -225,3 +225,19 @@ Let's first fix the first two gaps, and document the other 3 for next steps
 ## 52. Commit and Push Test Review Fixes
 
 Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?
+
+## 53. Next Task After Test Review Fixes
+
+which task should we take now?
+
+## 54. Start R01
+
+Let's tackle R01, then
+
+## 55. Retry R01 Docker Validation
+
+try now, I've started Docker Desktop
+
+## 56. Commit and Push R01
+
+Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?

@@ -506,11 +506,13 @@ The panic recovery and email contract fixes are recorded in the review document.
 
 ### R01 — Prove lifecycle and migration concurrency overlap
 
-- [ ] Complete
+- [x] Complete
 
 **Depends on:** T06, T07.
 **Deliver:** Synchronize graceful shutdown tests so the handler remains blocked after listener closure; synchronize migration tests so a second runner demonstrably waits on the first, including cancellation/retry.
 **Verify:** Tests fail if shutdown closes active requests immediately or migration serialization is removed; avoid relying on scheduler timing alone.
+
+**Validation (2026-10-18):** Completed after Docker Desktop became available. Full formatting/vet/unit/build checks and race-enabled PostgreSQL integration passed. Shutdown and migration-overlap tests each passed three additional race-enabled repetitions, including cancelled waiter/retry and single-application/history assertions. In disposable source copies, replacing graceful Shutdown with immediate Close failed the shutdown test, and removing the migration advisory lock failed both concurrency cases on the observed lock type. Both mutation failures were expected and checked by the validation script. No fixture databases remained; dedicated containers/network were removed; validation exit 0. Production code is unchanged.
 
 ### R02 — Add one complete local validation command
 

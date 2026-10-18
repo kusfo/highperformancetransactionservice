@@ -4,6 +4,7 @@ package integration_test
 
 import (
 	"context"
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -91,29 +92,137 @@ func TestHistoryIntegrity(t *testing.T) {
 		})
 	}
 }
-func TestConcurrentRunners(t *testing.T) {
-	conn := testdb.New(t)
-	ctx := testContext(t)
-	second, err := pgx.ConnectConfig(ctx, conn.Config().Copy())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer second.Close(context.Background())
-	files := sqlFiles("CREATE TABLE fixture (id integer); INSERT INTO fixture VALUES (1);")
-	done := make(chan error, 2)
-	for _, c := range []*pgx.Conn{conn, second} {
-		go func(c *pgx.Conn) { done <- postgres.Migrate(ctx, c, files) }(c)
-	}
-	for i := 0; i < 2; i++ {
-		if err := <-done; err != nil {
+
+// waitForBlocker observes PostgreSQL's real wait graph. Polling is bounded;
+// elapsed time is not used as evidence that two runners overlap.
+func waitForBlocker(t *testing.T, ctx context.Context, observer *pgx.Conn, waiter, blocker uint32) {
+	t.Helper()
+	ticker := time.NewTicker(5 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		var blocked, advisory bool
+		err := observer.QueryRow(ctx, `SELECT $1::integer = ANY(pg_blocking_pids($2::integer)), EXISTS(SELECT 1 FROM pg_locks WHERE pid=$2::integer AND locktype='advisory' AND NOT granted)`, int64(blocker), int64(waiter)).Scan(&blocked, &advisory)
+		if err != nil {
 			t.Fatal(err)
 		}
-	}
-	var count int
-	if err := conn.QueryRow(ctx, "SELECT count(*) FROM fixture").Scan(&count); err != nil || count != 1 {
-		t.Fatalf("duplicate application: %d, %v", count, err)
+		if blocked {
+			if !advisory {
+				t.Fatal("runner blocked on a different lock, not the migration advisory lock")
+			}
+			return
+		}
+		select {
+		case <-ctx.Done():
+			t.Fatal("expected database lock wait was not observed")
+		case <-ticker.C:
+		}
 	}
 }
+
+func TestConcurrentRunners(t *testing.T) {
+	for _, cancelWaiter := range []bool{false, true} {
+		name := "serialized"
+		if cancelWaiter {
+			name = "cancel_and_retry"
+		}
+		t.Run(name, func(t *testing.T) {
+			observer := testdb.New(t)
+			ctx := testContext(t)
+			first, err := pgx.ConnectConfig(ctx, observer.Config().Copy())
+			if err != nil {
+				t.Fatal(err)
+			}
+			second, err := pgx.ConnectConfig(ctx, observer.Config().Copy())
+			if err != nil {
+				_ = first.Close(ctx)
+				t.Fatal(err)
+			}
+			defer func() {
+				closeCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				_ = first.Close(closeCtx)
+				_ = second.Close(closeCtx)
+			}()
+			runCtx, cancelRuns := context.WithCancel(ctx)
+			defer cancelRuns()
+			// A separate gate holds the first runner INSIDE its migration, after it
+			// acquired the production migration lock. The observer owns that gate.
+			const gate = 918006
+			if _, err := observer.Exec(ctx, `SELECT pg_advisory_lock($1)`, gate); err != nil {
+				t.Fatal(err)
+			}
+			defer func() {
+				cleanup, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				_, _ = observer.Exec(cleanup, `SELECT pg_advisory_unlock($1)`, gate)
+			}()
+			files := sqlFiles("SELECT pg_advisory_xact_lock(918006); CREATE TABLE fixture (id integer); INSERT INTO fixture VALUES (1);")
+			firstDone := make(chan error, 1)
+			go func() { firstDone <- postgres.Migrate(runCtx, first, files) }()
+			waitForBlocker(t, ctx, observer, first.PgConn().PID(), observer.PgConn().PID())
+			waiterCtx, cancelWait := context.WithCancel(runCtx)
+			defer cancelWait()
+			secondDone := make(chan error, 1)
+			go func() { secondDone <- postgres.Migrate(waiterCtx, second, files) }()
+			waitForBlocker(t, ctx, observer, second.PgConn().PID(), first.PgConn().PID())
+			if cancelWaiter {
+				cancelWait()
+				select {
+				case err := <-secondDone:
+					if !errors.Is(err, context.Canceled) {
+						t.Fatalf("expected cancelled lock wait: %v", err)
+					}
+				case <-ctx.Done():
+					t.Fatal("cancelled runner did not return")
+				}
+				var exists bool
+				if err := observer.QueryRow(ctx, `SELECT to_regclass('public.schema_migrations') IS NOT NULL`).Scan(&exists); err != nil || exists {
+					t.Fatalf("waiting runner committed history: %v %v", exists, err)
+				}
+			}
+			if _, err := observer.Exec(ctx, `SELECT pg_advisory_unlock($1)`, gate); err != nil {
+				t.Fatal(err)
+			}
+			select {
+			case err := <-firstDone:
+				if err != nil {
+					t.Fatal(err)
+				}
+			case <-ctx.Done():
+				t.Fatal("first runner did not finish")
+			}
+			if cancelWaiter {
+				// Cancellation may close a pgx connection: retry on a fresh connection,
+				// as a restarted migration command would do.
+				retry, err := pgx.ConnectConfig(ctx, observer.Config().Copy())
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer retry.Close(context.Background())
+				if err := postgres.Migrate(ctx, retry, files); err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				select {
+				case err := <-secondDone:
+					if err != nil {
+						t.Fatal(err)
+					}
+				case <-ctx.Done():
+					t.Fatal("second runner did not finish")
+				}
+			}
+			var count int
+			if err := observer.QueryRow(ctx, "SELECT count(*) FROM fixture").Scan(&count); err != nil || count != 1 {
+				t.Fatalf("duplicate application: %d %v", count, err)
+			}
+			if err := observer.QueryRow(ctx, "SELECT count(*) FROM schema_migrations").Scan(&count); err != nil || count != 1 {
+				t.Fatalf("incorrect migration history: %d %v", count, err)
+			}
+		})
+	}
+}
+
 func TestFixtureCleanupAndIsolation(t *testing.T) {
 	ctx := testContext(t)
 	var name string

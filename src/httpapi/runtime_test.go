@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -218,22 +219,46 @@ func tlsConfigForTest(t *testing.T) (Config, *http.Client) {
 	t.Cleanup(func() { client.CloseIdleConnections() })
 	return cfg, client
 }
+
+// closeObservedListener signals completion of listener closure, not merely the
+// cancellation request. The handler stays blocked while shutdown is observed.
+type closeObservedListener struct {
+	net.Listener
+	closed chan struct{}
+	once   sync.Once
+}
+
+func (l *closeObservedListener) Close() error {
+	err := l.Listener.Close()
+	l.once.Do(func() { close(l.closed) })
+	return err
+}
+
 func TestTLSGracefulShutdown(t *testing.T) {
 	cfg, client := tlsConfigForTest(t)
-	entered := make(chan struct{})
+	entered := make(chan context.Context, 1)
 	release := make(chan struct{})
+	var once sync.Once
+	unblock := func() { once.Do(func() { close(release) }) }
+	defer unblock()
 	runtime, err := New(cfg, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		close(entered)
-		<-release
-		WriteJSON(w, 200, map[string]bool{"ok": true})
+		entered <- r.Context()
+		select {
+		case <-release:
+			WriteJSON(w, 200, map[string]bool{"ok": true})
+		case <-r.Context().Done():
+		}
 	}), io.Discard)
 	if err != nil {
 		t.Fatal(err)
 	}
-	listener, err := net.Listen("tcp", cfg.Addr)
+	base, err := net.Listen("tcp", cfg.Addr)
 	if err != nil {
 		t.Fatal(err)
 	}
+	listener := &closeObservedListener{Listener: base, closed: make(chan struct{})}
+	shutdownStarted := make(chan struct{})
+	runtime.server.RegisterOnShutdown(func() { close(shutdownStarted) })
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	done := make(chan error, 1)
@@ -242,23 +267,58 @@ func TestTLSGracefulShutdown(t *testing.T) {
 	go func() {
 		r, err := client.Get("https://" + listener.Addr().String())
 		if err == nil {
-			_, err = io.ReadAll(r.Body)
+			data, readErr := io.ReadAll(r.Body)
 			_ = r.Body.Close()
-			if r.StatusCode != 200 {
+			err = readErr
+			if r.StatusCode != 200 || !bytes.Equal(bytes.TrimSpace(data), []byte(`{"ok":true}`)) {
 				err = io.ErrUnexpectedEOF
 			}
 		}
 		response <- err
 	}()
+	var requestContext context.Context
 	select {
-	case <-entered:
+	case requestContext = <-entered:
 	case <-time.After(2 * time.Second):
 		t.Fatal("request did not start")
 	}
 	cancel()
-	close(release)
-	if err := <-response; err != nil {
-		t.Fatal(err)
+	select {
+	case <-listener.closed:
+	case <-time.After(2 * time.Second):
+		t.Fatal("shutdown did not close listener")
+	}
+	select {
+	case <-shutdownStarted:
+	case <-time.After(2 * time.Second):
+		t.Fatal("graceful shutdown was not initiated")
+	}
+	if conn, err := net.DialTimeout("tcp", listener.Addr().String(), 100*time.Millisecond); err == nil {
+		_ = conn.Close()
+		t.Fatal("shutdown listener accepts connections")
+	}
+	// Assert the request is still active AFTER listener closure, before release.
+	if err := requestContext.Err(); err != nil {
+		t.Fatalf("in-flight request cancelled during drain: %v", err)
+	}
+	select {
+	case err := <-done:
+		t.Fatalf("Serve returned before active request finished: %v", err)
+	default:
+	}
+	select {
+	case err := <-response:
+		t.Fatalf("request finished before release: %v", err)
+	default:
+	}
+	unblock()
+	select {
+	case err := <-response:
+		if err != nil {
+			t.Fatal(err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("request did not finish")
 	}
 	select {
 	case err := <-done:
@@ -268,11 +328,8 @@ func TestTLSGracefulShutdown(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("shutdown did not finish")
 	}
-	if conn, err := net.DialTimeout("tcp", listener.Addr().String(), 100*time.Millisecond); err == nil {
-		_ = conn.Close()
-		t.Fatal("listener still open")
-	}
 }
+
 func TestShutdownDeadlineCancelsInFlight(t *testing.T) {
 	cfg, client := tlsConfigForTest(t)
 	cfg.ShutdownTimeout = 20 * time.Millisecond
