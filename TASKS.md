@@ -516,11 +516,13 @@ The panic recovery and email contract fixes are recorded in the review document.
 
 ### R02 — Add one complete local validation command
 
-- [ ] Complete
+- [x] Complete
 
 **Depends on:** T02, T06, T07, T08.
 **Deliver:** Provide a documented command for OpenAPI/examples, formatting, vet, builds, race-enabled HTTP/user tests and real PostgreSQL integration; preserve container/fixture cleanup on failure.
 **Verify:** Run from an isolated source copy; failure in any check group produces nonzero status and no leftover test resources. CI wiring remains T54.
+
+**Validation (2026-10-21):** Finalized `make check-all` passed from isolated snapshots: OpenAPI/examples/email fixtures, orchestration regressions, formatting/vet/unit tests, all five builds, race-enabled Go tests and PostgreSQL integration. Four orchestration tests cover success, failure propagation/cleanup for every group (including orchestration itself), cleanup-error status, and preserved postgres-only mode. A real isolated source copy with an intentionally failing Go test returned nonzero; Docker inspection confirmed its three containers and network were removed. Successful-run fixture count was zero and cleanup exited 0. `sh -n` and `git diff --check` passed. Earlier in-development wrapper run was invalidated by editing it during execution; only the finalized unchanged run is completion evidence. CI wiring remains T54.
 
 ### R03 — Extend boundary and operational test coverage
 

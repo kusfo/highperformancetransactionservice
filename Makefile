@@ -3,7 +3,7 @@ SERVICES := user account transaction transaction-worker migrate
 BINARIES := $(addprefix bin/,$(SERVICES))
 GO_FILES := $(shell find cmd src -type f -name '*.go' 2>/dev/null)
 
-.PHONY: build fmt fmt-check test vet check clean migrate test-integration test-postgres
+.PHONY: build fmt fmt-check test vet check clean migrate test-integration test-postgres check-all
 
 build: $(BINARIES)
 
@@ -38,3 +38,7 @@ test-postgres:
 
 migrate: bin/migrate
 	./bin/migrate
+
+# Complete isolated validation; requires Docker, not host Go/Python/PostgreSQL.
+check-all:
+	./scripts/test-postgres.sh --all

@@ -149,3 +149,23 @@ Repeat normal validation with `make test-postgres`; targeted repetition uses
 `go test -race -count=3 -run TestTLSGracefulShutdown ./src/httpapi` and, against a
 disposable database, `go test -race -tags=integration -count=3 -run TestConcurrentRunners ./tests/integration`.
 Mutation checks were run only in temporary copies, never on production sources.
+
+## R02 Completion — 2026-10-21
+
+`make check-all` is the full local validation entry point. It takes a source
+snapshot and runs contracts/orchestration checks in Python, Go checks/builds,
+race-enabled unit tests and real PostgreSQL integration tests in disposable
+containers. PostgreSQL-only validation retains its existing command and scope.
+The wrapper explicitly checks container exit codes and propagates cleanup errors.
+
+The finalized full run passed, with zero remaining fixture databases and successful
+container/network removal. Four orchestration tests simulate failures in every
+check group, including orchestration itself, and verify nonzero status plus
+cleanup. They intentionally make Docker attachment report success to exercise
+the explicit exit-code checks. A separate real Docker run in a temporary source
+copy injected a failing Go test; it returned nonzero, and inspection confirmed
+all three run-specific containers and its network were gone. These simulation
+checks supplement, rather than replace, real Go/contract/PostgreSQL validation.
+
+R02 is complete. R03 remains open; CI integration remains T54. Run details and
+host requirements are documented in README.md.

@@ -241,3 +241,11 @@ try now, I've started Docker Desktop
 ## 56. Commit and Push R01
 
 Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?
+
+## 57. Start R02
+
+Let's tackle R02 now
+
+## 58. Commit and Push R02
+
+Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?

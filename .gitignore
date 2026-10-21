@@ -1,3 +1,6 @@
 
 # Local compiled Go binaries
 /bin/
+
+# Python validation bytecode
+__pycache__/

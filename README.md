@@ -16,7 +16,8 @@ From the repository root:
 | `make fmt-check` | Detect formatting changes; applies formatting and fails if files changed. |
 | `make test` | Run `go test ./...`. |
 | `make vet` | Run Go's static checks. |
-| `make check` | Run formatting, static checks, tests, and builds. |
+| `make check` | Run Go formatting, static checks, tests, and builds (no database/contracts). |
+| `make check-all` | Run the complete isolated Docker validation suite, including contracts and PostgreSQL. |
 | `make clean` | Remove the generated binaries. |
 
 Build one process with `make bin/user` (or `bin/account`, `bin/transaction`,
@@ -59,3 +60,34 @@ folder or timeout, use `./bin/migrate -dir path/to/sql -timeout 2m`. See
 [migration conventions](migrations/README.md). The first migration creates user persistence; migration-runner tests also use
 independent fixture SQL. Database URLs must not be
 committed, printed or copied into issue reports.
+
+
+## Complete validation
+
+Run `make check-all` before submitting changes. It requires a running Docker
+Engine/Desktop, GNU Make, a POSIX shell, tar and mktemp; Go, Python and PostgreSQL
+do not need to be installed on the host. For Docker Desktop, select its context
+first, or use `DOCKER_CONTEXT=desktop-linux make check-all`.
+
+The command snapshots only the source/test/contract/build inputs, then runs:
+
+1. OpenAPI structure/examples, boundary and shared email cases, plus validation
+   orchestration regression tests, in a disposable Python container.
+2. Go formatting, vet, regular tests and all binary builds in a Go container.
+3. Race-enabled Go tests, including HTTP lifecycle and user repository unit tests.
+4. Race-enabled integration tests against a real disposable PostgreSQL server.
+5. Verification that test databases were removed, followed by container/network
+   and source-archive cleanup. No database ports or persistent volumes are created.
+
+Images, Python requirements, the container's Make package, and Go dependencies
+may download on first use; registry/package network access is required. Generated
+binaries and formatting changes stay inside the snapshot. Any failed check or
+cleanup returns nonzero. Diagnostics retain the failing check's output; do not
+interpret the final success message alone as proof that cleanup succeeded.
+
+`make check` remains the faster Go-only command; `make test-postgres` preserves
+its previous Go-plus-database scope. For orchestrator development alone, run
+`python3 -m unittest discover -s tests/validation -v` (Python and Make required).
+Those tests simulate tool/container failures to verify control flow and cleanup;
+they do not replace the real validators or PostgreSQL tests in `check-all`.
+CI integration remains task T54.
