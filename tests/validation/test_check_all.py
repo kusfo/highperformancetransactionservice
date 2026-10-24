@@ -14,7 +14,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 TOOLS = r'''
-import json, os, pathlib, subprocess, sys, shutil
+import json, os, pathlib, subprocess, sys, shutil, signal
 state_path = pathlib.Path(os.environ['FAKE_DOCKER_STATE'])
 state = json.loads(state_path.read_text())
 args = sys.argv[1:]
@@ -61,6 +61,9 @@ elif command == 'create':
 elif command == 'start':
     ident = args[-1]; record = state['containers'][ident]
     if '-ai' in args:
+        if os.environ.get('FAIL_GROUP') == 'interrupt' and record['env'].get('VALIDATION_MODE') == '--all':
+            os.kill(os.getppid(), signal.SIGTERM)
+            sys.exit(143)
         workspace = state_path.parent / ident
         shell = record['shell'].replace('/workspace', str(workspace))
         result = subprocess.run(['sh', '-ec', shell], env=dict(os.environ, **record['env']))
@@ -126,6 +129,12 @@ class CheckAllTests(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertIn(group, groups)
                 self.assertEqual(groups[-1], group)
+
+    def test_sigterm_cleans_up_active_validation(self):
+        result, groups = self.run_validation('interrupt')
+        self.assertEqual(result.returncode, 143, result.stdout + result.stderr)
+        self.assertIn('contracts', groups)
+        self.assertNotIn('format', groups)
 
     def test_cleanup_error_changes_success_to_failure(self):
         result, _ = self.run_validation(cleanup_failure=True)

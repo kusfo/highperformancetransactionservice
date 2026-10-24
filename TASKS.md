@@ -526,7 +526,7 @@ The panic recovery and email contract fixes are recorded in the review document.
 
 ### R03 — Extend boundary and operational test coverage
 
-- [ ] Complete
+- [x] Complete
 
 **Depends on:** T01, T06, T07, T08.
 **Deliver:** Add the following independently runnable regression cases in small changes:
@@ -537,6 +537,32 @@ The panic recovery and email contract fixes are recorded in the review document.
 - User name upper boundary, mixed-case concurrent attempts against active/inactive emails, storage-outage redaction, and explicit SQLSTATE/constraint assertions. Shared email length fixtures now cover the 254/255-character boundary.
 
 **Verify:** Each case reproduces its targeted failure independently, uses disposable resources, and passes with the documented behavior. Split into separately tracked subtasks when work begins; do not add tests for unimplemented domain endpoints.
+
+### R03-A — Service executable lifecycle
+
+- [x] Complete
+
+**Verify:** `TestServiceBinaries` builds each HTTP service, checks missing TLS rejection, serves HTTPS and exits cleanly on SIGTERM.
+
+### R03-B — Migration CLI and cleanup
+
+- [x] Complete
+
+**Verify:** `TestMigrationCLI` covers configuration, redaction, rollback, timeout, rerun and empty directories; `TestFixtureCleanupAfterTestFailure` checks a failing subprocess drops its database. The orchestration SIGTERM test verifies interrupted wrapper cleanup using simulated Docker resources.
+
+### R03-C — HTTP transport boundaries
+
+- [x] Complete
+
+**Verify:** `TestNetwork*` covers exact/oversized known-length and chunked bodies, unsupported encoding, oversized headers, plaintext rejection and independent header/body read deadlines over real sockets.
+
+### R03-D — User persistence boundaries
+
+- [x] Complete
+
+**Verify:** Integration tests cover 100/101-character Unicode names, mixed-case concurrent active/inactive email registration, closed-connection error redaction and named PostgreSQL constraints/SQLSTATEs.
+
+**Validation (2026-10-22):** `DOCKER_CONTEXT=desktop-linux make check-all` passed contracts/examples, all five orchestration tests, formatting/vet, normal and race-enabled Go tests, all five builds, and real PostgreSQL integration (including compiled CLI/service subprocesses). No fixture databases remained; container/network cleanup completed with exit 0. The first run caught a test URL error: pgx's original connection string referenced the admin database, so CLI tests now explicitly select their isolated fixture database. SIGTERM wrapper cleanup is covered with simulated Docker resources; failing-test fixture cleanup uses real PostgreSQL. Production code is unchanged.
 
 ## Deferred Scope
 

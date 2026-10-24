@@ -169,3 +169,29 @@ checks supplement, rather than replace, real Go/contract/PostgreSQL validation.
 
 R02 is complete. R03 remains open; CI integration remains T54. Run details and
 host requirements are documented in README.md.
+
+## R03 Completion — 2026-10-22
+
+R03-A through R03-D in TASKS.md are complete:
+
+- Each compiled HTTP service rejects missing TLS configuration, serves HTTPS,
+  handles SIGTERM successfully and closes its listener.
+- The migration CLI covers missing/invalid database URLs, redacted SQL failures,
+  timeout rollback, reruns without duplicate work and empty directories. Each
+  CLI invocation targets its isolated fixture database. An intentionally failing
+  test subprocess proves its PostgreSQL fixture is dropped during cleanup.
+- Real socket tests cover exact and oversized known-length/chunked JSON bodies,
+  unsupported compression, oversized headers, plaintext rejection and independent
+  header/body deadlines. The header test uses a longer body deadline so it cannot
+  mask an absent header deadline.
+- Persistence tests cover 100-character Unicode names, named constraint/SQLSTATE
+  errors, mixed-case concurrent attempts for active/inactive emails and storage
+  failures using a closed connection. Existing shared email length fixtures remain.
+- A fifth orchestration test sends SIGTERM to the validation wrapper and checks
+  its nonzero exit plus simulated container/network/archive cleanup. This is
+  control-flow coverage, not a real Docker interruption experiment.
+
+The complete Docker validation passed with zero remaining fixture databases and
+successful resource cleanup (exit 0). The initial run exposed an incorrect URL in
+these new CLI tests; that fixture setup was corrected before the successful run.
+Production code is unchanged. README.md lists independent test-group commands.

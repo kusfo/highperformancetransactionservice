@@ -6,9 +6,11 @@ import (
 	"context"
 	"errors"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/kusfo/highperformancetransactionservice/src/postgres"
 	"github.com/kusfo/highperformancetransactionservice/src/users"
 	"github.com/kusfo/highperformancetransactionservice/tests/testdb"
@@ -69,6 +71,7 @@ func TestConcurrentEmailRegistration(t *testing.T) {
 	start := make(chan struct{})
 	results := make(chan error, contenders)
 	for i := 0; i < contenders; i++ {
+		email := []string{"Concurrent@Example.com", " concurrent@example.COM ", "CONCURRENT@EXAMPLE.COM"}[i%3]
 		c, err := pgx.ConnectConfig(ctx, conn.Config().Copy())
 		if err != nil {
 			t.Fatal(err)
@@ -76,7 +79,7 @@ func TestConcurrentEmailRegistration(t *testing.T) {
 		t.Cleanup(func() { _ = c.Close(context.Background()) })
 		go func() {
 			<-start
-			_, err := users.NewRepository(c).Create(ctx, "Concurrent@Example.com", "fixture-hash", nil)
+			_, err := users.NewRepository(c).Create(ctx, email, "fixture-hash", nil)
 			results <- err
 		}()
 	}
@@ -125,13 +128,85 @@ func TestUserValidationAndDatabaseConstraints(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, email := range []string{"UPPER@example.com", " space@example.com", "é@example.com"} {
-		if _, err := conn.Exec(ctx, `INSERT INTO identity.users(user_id,email,password_hash) VALUES ('550e8400-e29b-41d4-a716-446655440000',$1,'fixture-hash')`, email); err == nil {
-			t.Fatal("database accepted noncanonical email")
-		}
+		_, err := conn.Exec(ctx, `INSERT INTO identity.users(user_id,email,password_hash) VALUES ('550e8400-e29b-41d4-a716-446655440000',$1,'fixture-hash')`, email)
+		assertConstraint(t, err, "23514", "users_email_canonical")
 	}
 	cancelled, cancel := context.WithCancel(ctx)
 	cancel()
 	if _, err := repo.ByID(cancelled, "missing"); !errors.Is(err, context.Canceled) {
 		t.Fatalf("cancellation lost: %v", err)
+	}
+}
+
+func assertConstraint(t *testing.T, err error, state, constraint string) {
+	t.Helper()
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) || pgErr.Code != state || pgErr.ConstraintName != constraint {
+		t.Fatalf("expected %s/%s, got %v", state, constraint, err)
+	}
+}
+func TestUserPersistenceBoundariesAndOutage(t *testing.T) {
+	conn, repo, ctx := userFixture(t)
+	name := strings.Repeat("界", 100)
+	user, err := repo.Create(ctx, "boundary@example.com", "secret-stored-hash", &name)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, err := repo.ByID(ctx, user.UserID); err != nil || got.DisplayName != name {
+		t.Fatal("100-character name not retained")
+	}
+	_, err = conn.Exec(ctx, `INSERT INTO identity.users(user_id,email,password_hash) VALUES ('550e8400-e29b-41d4-a716-446655440000','boundary@example.com','hash')`)
+	assertConstraint(t, err, "23505", "users_email_unique")
+	_, err = conn.Exec(ctx, `INSERT INTO identity.users(user_id,email,password_hash) VALUES ('550e8400-e29b-41d4-a716-446655440000','other@example.com','')`)
+	assertConstraint(t, err, "23514", "users_password_hash_check")
+	_, err = conn.Exec(ctx, `INSERT INTO identity.users(user_id,email,password_hash,display_name) VALUES ('550e8400-e29b-41d4-a716-446655440000','other@example.com','hash',$1)`, strings.Repeat("界", 101))
+	assertConstraint(t, err, "23514", "users_display_name_check")
+	if err := conn.Close(ctx); err != nil {
+		t.Fatal(err)
+	}
+	_, err = repo.Create(ctx, "outage@example.com", "secret-stored-hash", nil)
+	if !errors.Is(err, users.ErrStorage) || strings.Contains(err.Error(), "secret-stored-hash") || strings.Contains(err.Error(), "outage@example.com") {
+		t.Fatalf("unsafe outage result: %v", err)
+	}
+	if _, err := repo.CredentialsByEmail(ctx, "boundary@example.com"); !errors.Is(err, users.ErrStorage) {
+		t.Fatalf("credential outage: %v", err)
+	}
+	if err := repo.SetActive(ctx, user.UserID, false); !errors.Is(err, users.ErrStorage) {
+		t.Fatalf("state outage: %v", err)
+	}
+}
+func TestConcurrentRegistrationAgainstInactiveEmail(t *testing.T) {
+	conn, repo, ctx := userFixture(t)
+	user, err := repo.Create(ctx, "reserved@example.com", "fixture-hash", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.SetActive(ctx, user.UserID, false); err != nil {
+		t.Fatal(err)
+	}
+	start := make(chan struct{})
+	results := make(chan error, 6)
+	for i := 0; i < 6; i++ {
+		c, err := pgx.ConnectConfig(ctx, conn.Config().Copy())
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = c.Close(context.Background()) })
+		email := []string{"RESERVED@example.com", " reserved@EXAMPLE.COM "}[i%2]
+		go func() {
+			<-start
+			_, err := users.NewRepository(c).Create(ctx, email, "fixture-hash", nil)
+			results <- err
+		}()
+	}
+	close(start)
+	for i := 0; i < 6; i++ {
+		if err := <-results; !errors.Is(err, users.ErrEmailAlreadyUsed) {
+			t.Fatalf("inactive email was not reserved: %v", err)
+		}
+	}
+	var count int
+	if err := conn.QueryRow(ctx, "SELECT count(*) FROM identity.users").Scan(&count); err != nil || count != 1 {
+		t.Fatalf("unexpected rows: %d %v", count, err)
 	}
 }

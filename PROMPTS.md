@@ -249,3 +249,15 @@ Let's tackle R02 now
 ## 58. Commit and Push R02
 
 Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?
+
+## 59. Start R03
+
+Ok, let's go for R03
+
+## 60. Resume R03
+
+can you resume your work on R03?
+
+## 61. Commit and Push R03
+
+Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?

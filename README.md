@@ -91,3 +91,25 @@ its previous Go-plus-database scope. For orchestrator development alone, run
 Those tests simulate tool/container failures to verify control flow and cleanup;
 they do not replace the real validators or PostgreSQL tests in `check-all`.
 CI integration remains task T54.
+
+### Targeted boundary and operational tests
+
+With Go installed, run the real TLS transport checks independently:
+
+```sh
+go test -race -count=1 -run '^TestNetwork' ./src/httpapi
+```
+
+The following groups require `TEST_DATABASE_URL` pointing to a disposable
+PostgreSQL server with database creation/deletion rights. CLI tests build the
+executables using Go; service tests use temporary certificates and local ports.
+
+```sh
+go test -race -tags=integration -count=1 -run '^TestServiceBinaries$' ./tests/integration
+go test -race -tags=integration -count=1 -run 'TestMigrationCLI|TestFixtureCleanupAfterTestFailure' ./tests/integration
+go test -race -tags=integration -count=1 -run 'TestUser|TestConcurrentEmail|TestConcurrentRegistration' ./tests/integration
+```
+
+`make check-all` includes all these groups without requiring host Go. The Python
+orchestration suite also checks SIGTERM cleanup with simulated Docker resources;
+a failing-test subprocess verifies actual PostgreSQL fixture cleanup.
