@@ -469,13 +469,24 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 **Deliver:** Deploy on a local cluster with documented database/broker/TLS overlays.
 **Verify:** Run API smoke tests and worker restart replay; document provider-specific prerequisites without assuming a cloud account.
 
-### T54 — CI checks
+### T54 — GitHub Actions continuous integration
 
 - [ ] Complete
 
-**Depends on:** {deps}.
-**Deliver:** Automate formatting, Go tests/race checks, database/broker integration and frontend/image builds.
-**Verify:** Run workflow-equivalent commands locally; failures block completion and do not leak secrets.
+**Priority:** Next task, before T10; no deployment environment is required.
+**Depends on:** R02.
+**Deliver:** Add a GitHub Actions workflow for every branch push, pull requests and manual dispatch. Run the existing `make check-all` on a GitHub-hosted Ubuntu VM with Docker: contracts/examples, orchestration tests, formatting/vet, Go builds, race tests and real PostgreSQL integration. Use read-only repository permissions, pinned action revisions, a job timeout and cancellation of superseded runs for the same ref/event. Preserve cleanup and expose check logs/status. No deployment or cloud credentials are required.
+**Verify:** Validate workflow syntax and the existing command locally; observe successful hosted push and pull-request runs. In a disposable branch, introduce a deliberate test failure and verify the check fails. Document the stable check name and how to make it required through repository rules; a workflow alone does not block merges. Leave incomplete until hosted-run evidence is recorded.
+
+**Progress (2026-10-25):** Workflow and CI runbook implemented; actionlint 1.7.7 passed. Local full-suite and hosted success/failure validation are in progress.
+
+### T54-B — Extend CI for later components
+
+- [ ] Complete
+
+**Depends on:** T54 and the tasks delivering broker integration, frontend and container builds.
+**Deliver:** Add broker integration tests, frontend checks and application image builds as those components become available. Keep publishing/deployment separate until environments and release policy are defined.
+**Verify:** Each added check passes on GitHub and propagates failures; builds do not require deployment credentials.
 
 ### T55 — Repeatable load benchmark
 

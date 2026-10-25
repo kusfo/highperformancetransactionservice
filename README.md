@@ -90,7 +90,9 @@ its previous Go-plus-database scope. For orchestrator development alone, run
 `python3 -m unittest discover -s tests/validation -v` (Python and Make required).
 Those tests simulate tool/container failures to verify control flow and cleanup;
 they do not replace the real validators or PostgreSQL tests in `check-all`.
-CI integration remains task T54.
+GitHub Actions runs this command on branch pushes and pull requests. See
+[continuous integration](docs/continuous-integration.md) for triggers, the stable
+check name and instructions for requiring passing checks before merging.
 
 ### Targeted boundary and operational tests
 
