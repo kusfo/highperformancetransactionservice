@@ -471,14 +471,14 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 ### T54 — GitHub Actions continuous integration
 
-- [ ] Complete
+- [x] Complete
 
 **Priority:** Next task, before T10; no deployment environment is required.
 **Depends on:** R02.
 **Deliver:** Add a GitHub Actions workflow for every branch push, pull requests and manual dispatch. Run the existing `make check-all` on a GitHub-hosted Ubuntu VM with Docker: contracts/examples, orchestration tests, formatting/vet, Go builds, race tests and real PostgreSQL integration. Use read-only repository permissions, pinned action revisions, a job timeout and cancellation of superseded runs for the same ref/event. Preserve cleanup and expose check logs/status. No deployment or cloud credentials are required.
 **Verify:** Validate workflow syntax and the existing command locally; observe successful hosted push and pull-request runs. In a disposable branch, introduce a deliberate test failure and verify the check fails. Document the stable check name and how to make it required through repository rules; a workflow alone does not block merges. Leave incomplete until hosted-run evidence is recorded.
 
-**Progress (2026-10-25):** Workflow and CI runbook implemented; actionlint 1.7.7 passed. Local full-suite and hosted success/failure validation are in progress.
+**Validation (2026-10-25):** actionlint 1.7.7 and local `make check-all` passed, including race-enabled tests, PostgreSQL integration and fixture/resource cleanup. GitHub-hosted [push run](https://github.com/kusfo/highperformancetransactionservice/actions/runs/40239902511) and [PR run](https://github.com/kusfo/highperformancetransactionservice/actions/runs/40240024178) passed for workflow commit `3ffe8f8`. The separate disposable failure-probe branch produced an [expected failed run](https://github.com/kusfo/highperformancetransactionservice/actions/runs/40240098031), with `TestCIFailureProbe` and exit code 2 confirmed in logs. Its [superseded run](https://github.com/kusfo/highperformancetransactionservice/actions/runs/40240082449) was cancelled. The intentional failing test is absent from the implementation branch. See `docs/continuous-integration.md` for check requirements. Implementation is delivered in PR #1; activation on main and repository merge rules require merging/configuration, not further workflow code.
 
 ### T54-B — Extend CI for later components
 

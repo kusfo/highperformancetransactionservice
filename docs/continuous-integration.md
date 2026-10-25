@@ -46,3 +46,15 @@ Keep checkout pinned to a reviewed full commit SHA when upgrading. Preserve the
 job name when editing the workflow or update required-check rules at the same
 time. Build caches and separate jobs can be introduced when measured runtime
 justifies them; currently local and hosted checks use the same entry point.
+
+## Hosted verification — 2026-10-25
+
+Workflow commit `3ffe8f8` passed both its
+[push run](https://github.com/kusfo/highperformancetransactionservice/actions/runs/40239902511)
+and [pull-request run](https://github.com/kusfo/highperformancetransactionservice/actions/runs/40240024178).
+A test added only to the disposable `t54/ci-failure-probe` branch caused the
+[expected failed check](https://github.com/kusfo/highperformancetransactionservice/actions/runs/40240098031):
+`TestCIFailureProbe` failed and Make exited 2. Its
+[preceding run](https://github.com/kusfo/highperformancetransactionservice/actions/runs/40240082449)
+was cancelled when superseded. No intentional failure is included in PR #1.
+Local actionlint and the full Docker suite also passed.
