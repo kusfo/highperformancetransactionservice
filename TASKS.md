@@ -94,11 +94,13 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 ### T09 — Password hashing component
 
-- [ ] Complete
+- [x] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T01, T02.
 **Deliver:** Choose password-hashing parameters and implement server-generated salts and verification.
 **Verify:** Correct passwords verify; wrong passwords fail; equal passwords produce distinct hashes.
+
+**Validation (2026-10-25):** Added `src/passwords` with Argon2id v19 (64 MiB, three passes, four lanes), random 16-byte salts, 32-byte keys and strict PHC parsing before derivation. Correct/wrong passwords, distinct salts, 12/128 Unicode boundaries, invalid UTF-8, whitespace/normalization preservation and malformed/unsupported hashes passed. An independently generated argon2-cffi 25.1.0 vector verifies interoperability. `DOCKER_CONTEXT=desktop-linux make check-all` passed contract/orchestration checks, formatting/vet, normal and race-enabled tests, all five builds and real PostgreSQL integration; no fixture databases remained and resource cleanup exited 0. Password package tests took 1.038s normally and 3.578s with race instrumentation in this run (not a deployment benchmark). Parameters, private-storage format and future endpoint concurrency responsibilities are documented in docs/password-hashing.md. Registration integration remains T10.
 
 ### T10 — Registration endpoint
 

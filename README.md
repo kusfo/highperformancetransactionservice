@@ -113,3 +113,5 @@ go test -race -tags=integration -count=1 -run 'TestUser|TestConcurrentEmail|Test
 `make check-all` includes all these groups without requiring host Go. The Python
 orchestration suite also checks SIGTERM cleanup with simulated Docker resources;
 a failing-test subprocess verifies actual PostgreSQL fixture cleanup.
+
+Password hashing and verification are documented in [password hashing](docs/password-hashing.md).

@@ -86,7 +86,7 @@ Resolve the outstanding decisions listed below before implementing affected beha
 
 ### 2. User Service
 
-Implement registration, login, and agreed profile lifecycle behavior. Salt and hash passwords server-side. Validate bearer-token authenticity and expiry in each service. Keep credentials and tokens out of logs and error output. Use unique emails, user deactivation with retained transaction history, 10-minute access tokens, and documented manual revocation/re-enablement. Superuser UI/API, recovery, and email verification are outside scope. Select password hashing parameters, token format, signing-key handling, and remaining session rules before completing authentication.
+Implement registration, login, and agreed profile lifecycle behavior. Salt and hash passwords server-side. Validate bearer-token authenticity and expiry in each service. Keep credentials and tokens out of logs and error output. Use unique emails, user deactivation with retained transaction history, 10-minute access tokens, and documented manual revocation/re-enablement. Superuser UI/API, recovery, and email verification are outside scope. T09 uses Argon2id version 19 with 64 MiB memory, three iterations, four lanes, 16-byte random salts and 32-byte derived keys; see `docs/password-hashing.md`. T02 selects opaque tokens with stored hashes; complete the remaining authentication integration in the session tasks.
 
 ### 3. Account and Transaction Core
 

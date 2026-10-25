@@ -261,3 +261,15 @@ can you resume your work on R03?
 ## 61. Commit and Push R03
 
 Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?
+
+## 62. Next Task After R03
+
+which task makes sense to start now?
+
+## 63. Start T09
+
+Let's take T09 then.
+
+## 64. Commit and Push T09
+
+Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?

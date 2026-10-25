@@ -70,7 +70,7 @@ func NormalizeEmail(email string) (string, error) {
 	return email, nil
 }
 
-// Create expects a server-generated password hash; password hashing is T09.
+// Create expects a server-generated password hash from src/passwords.
 // Optional displayName defaults to empty when omitted by the caller.
 func (r *Repository) Create(ctx context.Context, email, passwordHash string, displayName *string) (User, error) {
 	canonical, err := NormalizeEmail(email)
