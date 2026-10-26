@@ -9,7 +9,7 @@ Unique emails remain reserved for inactive users. Registration assigns UUID user
 ## Confirmed Contract Rules
 
 - **Confirmed:** trim surrounding ASCII whitespace and lowercase ASCII email addresses before registration/login lookup. Reject internationalized email for the initial version. Email remains immutable.
-- **Confirmed:** displayName is optional at registration, defaulting to an empty string when omitted. Supplied names and owner-only updates contain 1–100 Unicode characters. Names need not be unique and do not affect login; user and account names are separate. Reject unrecognized fields.
+- **Confirmed:** displayName is optional at registration, defaulting to an empty string when omitted. Supplied names and owner-only updates contain 1–100 Unicode characters excluding NUL, which PostgreSQL text cannot store. Names need not be unique and do not affect login; user and account names are separate. Reject unrecognized fields.
 - Change passwords using authenticated PUT /users/{userId}/password and the current password. New passwords are 12–128 Unicode characters; never trim/normalize them or require character categories.
 - **Confirmed:** use opaque random tokens backed by stored token hashes and revocation state; exact token generation/hashing choices belong to implementation tasks. Never store raw tokens.
 - **Confirmed:** no refresh endpoint: log in again after expiry. DELETE /sessions/current revokes the current session. Password changes and deactivation revoke all existing sessions permanently; re-enablement cannot revive them.

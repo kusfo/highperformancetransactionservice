@@ -11,6 +11,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"math/big"
 	"net"
 	"net/http"
@@ -43,7 +44,7 @@ func cliEnv(values map[string]string) []string {
 	var env []string
 	for _, item := range os.Environ() {
 		key, _, _ := strings.Cut(item, "=")
-		if strings.HasPrefix(key, "HTTP_") || key == "DATABASE_URL" {
+		if strings.HasPrefix(key, "HTTP_") || strings.HasPrefix(key, "PG") || key == "DATABASE_URL" {
 			continue
 		}
 		if _, ok := values[key]; !ok {
@@ -231,10 +232,27 @@ func TestServiceBinaries(t *testing.T) {
 			}
 			addr := reserved.Addr().String()
 			_ = reserved.Close()
-			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 			cmd := exec.CommandContext(ctx, path)
-			cmd.Env = cliEnv(map[string]string{"HTTP_ADDR": addr, "HTTP_TLS_CERT_FILE": cert, "HTTP_TLS_KEY_FILE": key})
+			env := map[string]string{"HTTP_ADDR": addr, "HTTP_TLS_CERT_FILE": cert, "HTTP_TLS_KEY_FILE": key}
+			if name == "user" {
+				conn, _, _ := userFixture(t)
+				databaseURL, err := url.Parse(os.Getenv("TEST_DATABASE_URL"))
+				if err != nil {
+					t.Fatal(err)
+				}
+				databaseURL.Path = "/" + conn.Config().Database
+				databaseURL.RawPath = ""
+				env["DATABASE_URL"] = databaseURL.String()
+				for _, badURL := range []string{"", "postgres://user:secret-token@invalid.invalid/db?bad=%"} {
+					badEnv := map[string]string{"HTTP_TLS_CERT_FILE": cert, "HTTP_TLS_KEY_FILE": key, "DATABASE_URL": badURL}
+					if output, err := runCLI(t, path, badEnv); err == nil || strings.Contains(output, "secret-token") {
+						t.Fatal("database configuration was not safely rejected")
+					}
+				}
+			}
+			cmd.Env = cliEnv(env)
 			if err := cmd.Start(); err != nil {
 				t.Fatal(err)
 			}
@@ -258,6 +276,17 @@ func TestServiceBinaries(t *testing.T) {
 				case <-ctx.Done():
 					t.Fatal("service startup timeout")
 				case <-time.After(10 * time.Millisecond):
+				}
+			}
+			if name == "user" {
+				response, err := client.Post("https://"+addr+"/users", "application/json", strings.NewReader(`{"email":"binary@example.com","password":"example-password"}`))
+				if err != nil {
+					t.Fatal(err)
+				}
+				body, err := io.ReadAll(response.Body)
+				_ = response.Body.Close()
+				if err != nil || response.StatusCode != 201 || !strings.Contains(string(body), "userId") {
+					t.Fatal("binary registration failed")
 				}
 			}
 			if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {

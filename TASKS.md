@@ -104,11 +104,13 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 ### T10 — Registration endpoint
 
-- [ ] Complete
+- [x] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T02, T06, T07, T08, T09.
 **Deliver:** Implement registration and safe response serialization.
 **Verify:** HTTP/database tests cover valid creation, duplicate email and client-provided hash rejection; responses/logs contain no secrets.
+
+**Validation (2026-10-26):** Implemented `POST /users` with strict input decoding, server-side Argon2id hashing, pooled PostgreSQL storage, bounded registration concurrency and userId-only responses. User service now requires `DATABASE_URL`; migrations remain explicit. Confirmed NUL display-name rejection is reflected in SPEC/OpenAPI. `DOCKER_CONTEXT=desktop-linux make check-all` passed contracts/examples, orchestration tests, formatting/vet, all five builds, unit/race tests and real PostgreSQL integration. HTTPS tests verified canonical email, stored hash verification/salt uniqueness, omitted/100-character names, active/inactive and concurrent duplicate conflicts, client-hash rejection, safe storage errors and log redaction. Unit tests cover invalid/null/duplicate/unknown fields, NUL names, error mapping and cancellation while waiting/hashing. The compiled User executable registered successfully and exited cleanly on SIGTERM; missing/malformed database configuration failed safely. No fixture databases remained and resource cleanup exited 0. An unused integration-test import found in the first run was removed before the successful rerun. See docs/registration.md for setup and runtime limits. Login/session issuance remains T11/T12.
 
 ### T11 — Session persistence and issuance
 

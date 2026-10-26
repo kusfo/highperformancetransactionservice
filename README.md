@@ -24,8 +24,10 @@ Build one process with `make bin/user` (or `bin/account`, `bin/transaction`,
 `bin/transaction-worker`, or `bin/migrate`). Run an HTTP service with `./bin/user`
 (or `go run ./cmd/user`) after setting
 `HTTP_TLS_CERT_FILE` and `HTTP_TLS_KEY_FILE`. Account and Transaction use the
-same configuration; set different `HTTP_ADDR` ports to run them together. Domain
-endpoints are later tasks; current routes return JSON 404 errors. The worker
+same HTTP configuration; set different `HTTP_ADDR` ports to run them together.
+User implements `POST /users` and also requires `DATABASE_URL` with migrations
+applied; see [registration](docs/registration.md). Account/Transaction routes
+currently return JSON 404 errors. The worker
 still prints its scaffold message and exits. See [HTTP runtime settings](docs/http-runtime.md).
 `go test ./...` now includes isolated HTTP runtime tests.
 
@@ -35,8 +37,8 @@ under `deploy/` as their tasks are implemented. `SPEC.md`, `PLAN.md`, and
 `TASKS.md` record requirements, implementation direction, and progress.
 
 To validate a clean checkout, run `make check`, then run the HTTP services with
-configured TLS files and the worker scaffold. With Go installed, these checks
-do not need PostgreSQL, RabbitMQ, or Docker.
+configured TLS files and the worker scaffold. Go-only checks need no database;
+running the User service requires PostgreSQL and applied migrations.
 
 
 ## PostgreSQL migrations and integration tests

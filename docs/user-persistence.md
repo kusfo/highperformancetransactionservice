@@ -14,13 +14,13 @@ omit their fields from JSON and redact fmt output; never log their hash accessor
 
 Email normalization trims surrounding ASCII whitespace, lowercases ASCII and
 rejects non-ASCII or malformed addresses. Omitted display names default to empty;
-supplied names contain 1–100 Unicode characters. Hashes must be nonempty; hashing
-and password verification belong to T09, not this repository.
+supplied names contain 1–100 Unicode characters excluding NUL. Hashes must be nonempty; hashing
+and password verification are implemented by `src/passwords`.
 
 SetActive retains the row and hash, including repeated state changes. Session
 revocation/HTTP authorization are later tasks and must accompany user deactivation
-at the service layer. No profile, password-change or registration endpoint is
-introduced here. Repository errors are fixed sentinels and do not expose driver
+at the service layer. The registration endpoint is implemented in `src/userapi`; profile and password-change
+endpoints remain later tasks. Repository errors are fixed sentinels and do not expose driver
 error details, submitted values or hashes; context cancellation is preserved.
 
 Run `make test-postgres` for disposable PostgreSQL tests, including concurrent

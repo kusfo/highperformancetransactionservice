@@ -70,6 +70,14 @@ func NormalizeEmail(email string) (string, error) {
 	return email, nil
 }
 
+// ValidateDisplayName applies the optional user display-name contract.
+func ValidateDisplayName(name *string) error {
+	if name != nil && (!utf8.ValidString(*name) || strings.ContainsRune(*name, 0) || utf8.RuneCountInString(*name) < 1 || utf8.RuneCountInString(*name) > 100) {
+		return ErrInvalidInput
+	}
+	return nil
+}
+
 // Create expects a server-generated password hash from src/passwords.
 // Optional displayName defaults to empty when omitted by the caller.
 func (r *Repository) Create(ctx context.Context, email, passwordHash string, displayName *string) (User, error) {
@@ -77,12 +85,12 @@ func (r *Repository) Create(ctx context.Context, email, passwordHash string, dis
 	if err != nil {
 		return User{}, err
 	}
+	if err := ValidateDisplayName(displayName); err != nil {
+		return User{}, err
+	}
 	name := ""
 	if displayName != nil {
 		name = *displayName
-		if !utf8.ValidString(name) || utf8.RuneCountInString(name) < 1 || utf8.RuneCountInString(name) > 100 {
-			return User{}, ErrInvalidInput
-		}
 	}
 	if passwordHash == "" || strings.ContainsRune(passwordHash, 0) {
 		return User{}, ErrInvalidInput

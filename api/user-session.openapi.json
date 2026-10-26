@@ -433,7 +433,8 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 100,
-            "description": "Optional at registration; omitted value defaults to empty string. Nonunique, separate from account names."
+            "description": "Optional at registration; omitted value defaults to empty string. Nonunique, separate from account names.",
+            "pattern": "^[^\\u0000]*$"
           }
         },
         "required": [
@@ -491,7 +492,8 @@
           "displayName": {
             "type": "string",
             "maxLength": 100,
-            "description": "Empty if omitted at registration; otherwise 1\u2013100 characters."
+            "description": "Empty if omitted at registration; otherwise 1\u2013100 characters.",
+            "pattern": "^[^\\u0000]*$"
           },
           "active": {
             "type": "boolean"
@@ -524,7 +526,8 @@
           "displayName": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 100
+            "maxLength": 100,
+            "pattern": "^[^\\u0000]*$"
           }
         },
         "required": [

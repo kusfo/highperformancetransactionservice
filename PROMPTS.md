@@ -281,3 +281,23 @@ I've a question related more to CI/CD, should we add a task to add CI/CD actions
 ## 66. Start T54
 
 If you think we can already start with t54, let's do it. Otherwise, which task do you suggest to tackle now?
+
+## 67. Pull Merged CI Changes
+
+I've already approved and merged the feature branch. You can pull the changes from origin
+
+## 68. Next Task After CI
+
+which task makes sense to start now?
+
+## 69. Start T10
+
+let's take T10
+
+## 70. Confirm NUL Display-Name Validation
+
+Reject NUL in displayName (Recommended)
+
+## 71. Commit and Push T10
+
+Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?

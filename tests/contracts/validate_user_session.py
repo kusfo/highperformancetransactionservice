@@ -67,3 +67,11 @@ for case in email_cases:
     canonical = case['valid'] and case['email'] == case['canonical']
     assert schema_validator('User').is_valid(user) == canonical, case['email']
 print(f'{len(email_cases)} shared input/canonical-output email cases passed.')
+
+# PostgreSQL text cannot represent NUL; apply the display-name rule consistently.
+for name, payload in (
+    ('RegisterRequest', {'email': 'person@example.com', 'password': 'example-password', 'displayName': 'a\u0000b'}),
+    ('User', {'userId': '550e8400-e29b-41d4-a716-446655440000', 'email': 'person@example.com', 'displayName': 'a\u0000b', 'active': True}),
+):
+    assert not schema_validator(name).is_valid(payload), name
+print('NUL display-name cases passed.')
