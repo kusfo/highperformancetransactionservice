@@ -273,3 +273,11 @@ Let's take T09 then.
 ## 64. Commit and Push T09
 
 Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?
+
+## 65. GitHub CI Task
+
+I've a question related more to CI/CD, should we add a task to add CI/CD actions for github? Even if for now we don't have an environment to deploy, we could pass the tests there after each psuh
+
+## 66. Start T54
+
+If you think we can already start with t54, let's do it. Otherwise, which task do you suggest to tackle now?
