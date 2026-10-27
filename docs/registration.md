@@ -41,8 +41,8 @@ errors are never printed. Account/Transaction scaffolds do not yet require a DB.
 
 ## Concurrency and cancellation
 
-Each User process allows two active registrations, including hashing and the
-insert. This bounds active Argon2 memory to approximately 128 MiB plus runtime
+Each User process allows two active registration/login requests, including
+hashing and storage. This bounds active Argon2 memory to approximately 128 MiB plus runtime
 overhead; waiting requests use the shared HTTP request deadline. Validate input
 before acquiring a slot, check cancellation before hashing and again before
 storage, and pass the request context to the database. Argon2 itself cannot be

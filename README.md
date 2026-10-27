@@ -25,7 +25,7 @@ Build one process with `make bin/user` (or `bin/account`, `bin/transaction`,
 (or `go run ./cmd/user`) after setting
 `HTTP_TLS_CERT_FILE` and `HTTP_TLS_KEY_FILE`. Account and Transaction use the
 same HTTP configuration; set different `HTTP_ADDR` ports to run them together.
-User implements `POST /users` and also requires `DATABASE_URL` with migrations
+User implements `POST /users` and `POST /sessions` and also requires `DATABASE_URL` with migrations
 applied; see [registration](docs/registration.md). Account/Transaction routes
 currently return JSON 404 errors. The worker
 still prints its scaffold message and exits. See [HTTP runtime settings](docs/http-runtime.md).
@@ -121,4 +121,4 @@ a failing-test subprocess verifies actual PostgreSQL fixture cleanup.
 Password hashing and verification are documented in [password hashing](docs/password-hashing.md).
 
 Session persistence, token format and lifecycle integration requirements are
-documented in [sessions](docs/sessions.md). Session HTTP endpoints remain later tasks.
+documented in [sessions](docs/sessions.md). Login is implemented; see [login](docs/login.md). Bearer middleware and logout remain later tasks.

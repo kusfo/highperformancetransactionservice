@@ -289,6 +289,18 @@ func TestServiceBinaries(t *testing.T) {
 					t.Fatal("binary registration failed")
 				}
 			}
+			if name == "user" {
+				response, err := client.Post("https://"+addr+"/sessions", "application/json", strings.NewReader(`{"email":"binary@example.com","password":"example-password"}`))
+				if err != nil {
+					t.Fatal(err)
+				}
+				body, err := io.ReadAll(response.Body)
+				_ = response.Body.Close()
+				if err != nil || response.StatusCode != 200 || !strings.Contains(string(body), "accessToken") {
+					t.Fatal("binary login failed")
+				}
+			}
+
 			if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {
 				t.Fatal(err)
 			}

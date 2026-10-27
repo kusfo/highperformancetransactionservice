@@ -124,11 +124,13 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 ### T12 — Login endpoint
 
-- [ ] Complete
+- [x] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T02, T07, T08, T09, T11.
 **Deliver:** Issue sessions only for valid credentials of active users.
 **Verify:** Test valid login, inactive users and generic failure responses for unknown email/wrong password.
+
+**Validation (2026-10-27):** Implemented `POST /sessions` and `src/login` with canonical email lookup, exact password verification, shared bounded registration/login admission, a READ COMMITTED user-row lock and session commit before token publication. Unknown/wrong/inactive credentials share a fixed 401 response; unknown/malformed stored credentials incur dummy Argon2 work. The login contract's 1–128-character password range is preserved (short attempts return 401, empty/overlong input returns 400). `DOCKER_CONTEXT=desktop-linux make check-all` passed contracts, orchestration, formatting/vet, all five builds, unit/race tests and real PostgreSQL integration. HTTPS checks verified response fields, ten-minute expiry, distinct durable tokens, generic failures, no sessions on rejected attempts and credential/token log redaction. A deferred-constraint failure proved no token is returned on failed commit. Observed database lock waits proved login rechecks committed deactivation/password changes. Compiled User service login and SIGTERM passed. No fixture databases remained; resource cleanup exited 0. `git diff --check` passed. See docs/login.md. Bearer middleware, logout and HTTP lifecycle endpoints remain later tasks.
 
 ### T13 — Entry-point authentication middleware
 

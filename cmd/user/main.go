@@ -1,4 +1,4 @@
-// Command user serves user registration over HTTPS.
+// Command user serves registration and login over HTTPS.
 package main
 
 import (
@@ -12,6 +12,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kusfo/highperformancetransactionservice/src/httpapi"
+	"github.com/kusfo/highperformancetransactionservice/src/login"
 	"github.com/kusfo/highperformancetransactionservice/src/userapi"
 	"github.com/kusfo/highperformancetransactionservice/src/users"
 )
@@ -43,7 +44,7 @@ func run() error {
 	if err != nil {
 		return errors.New("database unavailable")
 	}
-	routes := userapi.NewHandler(users.NewRepository(pool))
+	routes := userapi.NewHandlerWithLogin(users.NewRepository(pool), login.NewService(pool, nil))
 	runtime, err := httpapi.New(cfg, routes, os.Stdout)
 	if err != nil {
 		return err

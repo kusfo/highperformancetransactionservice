@@ -20,6 +20,7 @@ type Creator interface {
 
 type Handler struct {
 	users Creator
+	login Authenticator
 	slots chan struct{}
 	hash  func(string) (string, error)
 }
@@ -31,6 +32,10 @@ func NewHandler(repository Creator) *Handler {
 }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path == "/sessions" && h.login != nil {
+		h.serveLogin(w, r)
+		return
+	}
 	if r.URL.Path != "/users" {
 		httpapi.WriteError(w, 404, "NOT_FOUND", "Resource not found.")
 		return
