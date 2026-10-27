@@ -14,3 +14,6 @@ T17/T21 will add account/transaction schemas. Empty runs initialize migration hi
 Run `DATABASE_URL=... make migrate` against the intended database with appropriate
 DDL rights; the CLI never prints the URL or underlying database error payloads.
 Keep credentials in environment configuration rather than shell history or logs.
+
+`000002_sessions.sql` adds hashed opaque sessions with exact ten-minute expiry,
+user foreign keys and durable revocation. Raw access tokens are never stored.

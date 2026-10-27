@@ -114,11 +114,13 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 ### T11 — Session persistence and issuance
 
-- [ ] Complete
+- [x] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T02, T06, T08.
 **Deliver:** Implement selected token model, ten-minute expiry and revocation persistence.
 **Verify:** Clock-controlled tests cover expiry boundary, token authenticity and durable revocation.
+
+**Validation (2026-10-27):** Added append-only session migration and `src/sessions`: random 256-bit opaque tokens, SHA-256 digest-only storage, ten-minute expiry, active-user checks and durable single/all-user revocation. `DOCKER_CONTEXT=desktop-linux make check-all` passed contracts, orchestration regressions, formatting/vet, all five builds, unit/race tests and real PostgreSQL integration; no fixture databases remained and cleanup exited 0. Injected-clock tests verify issuance, just-before/exact/after expiry and pre-issuance rejection. Altered/unknown/malformed tokens fail; revocation persists across connections; explicitly revoked sessions remain invalid after re-enablement. Transaction rollback covers issuance/revocation; storage failures expose fixed errors and no issued token; credential formatting/JSON are redacted. `git diff --check` passed. See docs/sessions.md for format, clock requirements and transaction boundaries. Login/middleware and atomic lifecycle integration remain later tasks; no HTTP session endpoint is added here.
 
 ### T12 — Login endpoint
 

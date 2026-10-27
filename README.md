@@ -119,3 +119,6 @@ orchestration suite also checks SIGTERM cleanup with simulated Docker resources;
 a failing-test subprocess verifies actual PostgreSQL fixture cleanup.
 
 Password hashing and verification are documented in [password hashing](docs/password-hashing.md).
+
+Session persistence, token format and lifecycle integration requirements are
+documented in [sessions](docs/sessions.md). Session HTTP endpoints remain later tasks.
