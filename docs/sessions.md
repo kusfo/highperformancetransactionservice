@@ -2,7 +2,7 @@
 
 T11 adds `identity.sessions` through `000002_sessions.sql` and the `src/sessions`
 repository. Run migrations explicitly with `make migrate`. Login is implemented by `src/login` and `POST /sessions`; see [login](login.md).
-Logout and bearer middleware remain later tasks.
+Protected-route bearer middleware is implemented in `src/authn`; see [authentication](authentication.md). Logout remains a later task.
 
 ## Credential format and lifetime
 

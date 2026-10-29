@@ -134,11 +134,13 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 ### T13 — Entry-point authentication middleware
 
-- [ ] Complete
+- [x] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T02, T07, T11.
 **Deliver:** Validate bearer credentials, expiry, revocation and active user; expose validated identity.
 **Verify:** Test missing, malformed, forged, expired/revoked credentials and inactive users using isolated fixtures.
+
+**Validation (2026-10-29):** Implemented `src/authn` Bearer middleware with fresh session validation and a trusted user identity in request context. `DOCKER_CONTEXT=desktop-linux make check-all` passed contract and orchestration checks, formatting/vet, all five builds, unit/race tests and real PostgreSQL integration. HTTPS tests verify valid identity, missing/malformed/unknown/revoked tokens, duplicate headers, exact expiry, inactive users and persistent explicit revocation after re-enablement. Query parameters, cookies and supplied user-ID headers cannot authenticate requests. Unit tests cover cancellation and failure responses; storage errors fail closed and credentials stay out of responses/logs. No fixture databases remained; cleanup exited 0. See docs/authentication.md. Registration/login remain public; future protected endpoints must wrap their handlers with the middleware.
 
 ### T14 — Profile update endpoint
 

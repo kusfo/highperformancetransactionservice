@@ -43,7 +43,8 @@ that row observes the committed update before deciding whether to issue a token.
 This follows [PostgreSQL READ COMMITTED row-lock behavior](https://www.postgresql.org/docs/16/transaction-iso.html#XACT-READ-COMMITTED).
 Those endpoints remain future tasks. A successful commit followed by a lost HTTP
 response may leave an unused session; retrying login creates another session.
-No bearer middleware, logout endpoint or user lifecycle endpoint is added here.
+Protected-route bearer middleware is available through `src/authn`. Logout and
+user lifecycle endpoints remain later tasks.
 
 ## Running and testing
 

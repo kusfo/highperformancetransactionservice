@@ -317,3 +317,23 @@ Let's start doing t12
 ## 75. Commit and Push T12
 
 Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?
+
+## 76. Start T13
+
+Let's start doing t13 now
+
+## 77. T13 Status
+
+what's the status of t13 now?
+
+## 78. T13 Validation Requirements
+
+what we need to validate t13?
+
+## 79. Retry T13 Validation
+
+Can you try now? I've Docker Desktop running
+
+## 80. Commit and Push T13
+
+Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?
