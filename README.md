@@ -122,3 +122,5 @@ Password hashing and verification are documented in [password hashing](docs/pass
 
 Session persistence, token format and lifecycle integration requirements are
 documented in [sessions](docs/sessions.md). Login is implemented; see [login](docs/login.md). Protected-route middleware is available; see [authentication](docs/authentication.md). Logout remains a later task.
+
+Owner profile and password updates are documented in [profile updates](docs/profile.md).

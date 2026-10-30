@@ -3,8 +3,8 @@
 T13 provides `src/authn.Require(checker, next)` for protected HTTP handlers. Use
 `sessions.NewRepository(pool, nil)` as the checker. Wrap routes inside the shared
 HTTPS runtime so request deadlines, size limits and redacted logs remain active.
-Registration and login are public; no existing domain route needs protection yet.
-Profile/account/operation endpoints will apply this wrapper when implemented.
+Registration and login are public. Profile and password updates use this wrapper;
+account/operation endpoints will apply it when implemented.
 
 ```go
 protected := authn.Require(sessions.NewRepository(pool, nil), handler)
@@ -46,8 +46,8 @@ A successful lookup followed by detected cancellation does not dispatch.
 
 Revocation/deactivation committed before the lookup is visible to that request.
 A request already authenticated may continue; this is an entry check, not a
-continuous authorization lease. Later lifecycle endpoints must atomically revoke
-sessions when changing passwords or deactivating users, as documented in
+continuous authorization lease. Password changes atomically revoke sessions; future deactivation endpoints must
+do the same, as documented in
 [sessions](sessions.md).
 
 ## Validation

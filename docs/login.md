@@ -25,7 +25,7 @@ Malformed input, unknown/duplicate fields, null/wrong types, invalid email and
 empty/overlong passwords return `400 INVALID_REQUEST`. Storage/commit failures
 return fixed `500 INTERNAL_ERROR` responses without tokens or raw error details.
 The shared runtime still handles body limits, content type, timeouts and redacted
-logging. Registration and login share two active slots per process, bounding
+logging. Registration, login and password changes share two active slots per process, bounding
 Argon2 memory to approximately 128 MiB plus overhead. Waiting requests respect
 cancellation. Network/user-based rate limiting remains future work.
 
@@ -41,10 +41,10 @@ Password-change/deactivation code must lock the same user row before changing
 credentials/state and revoking sessions in its transaction. A login waiting on
 that row observes the committed update before deciding whether to issue a token.
 This follows [PostgreSQL READ COMMITTED row-lock behavior](https://www.postgresql.org/docs/16/transaction-iso.html#XACT-READ-COMMITTED).
-Those endpoints remain future tasks. A successful commit followed by a lost HTTP
+Password changes are implemented; user deactivation remains a future task. A successful commit followed by a lost HTTP
 response may leave an unused session; retrying login creates another session.
 Protected-route bearer middleware is available through `src/authn`. Logout and
-user lifecycle endpoints remain later tasks.
+user deactivation endpoints remain later tasks. See [profile updates](profile.md).
 
 ## Running and testing
 

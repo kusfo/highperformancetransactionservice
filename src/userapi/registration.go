@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/kusfo/highperformancetransactionservice/src/httpapi"
@@ -19,10 +20,11 @@ type Creator interface {
 }
 
 type Handler struct {
-	users Creator
-	login Authenticator
-	slots chan struct{}
-	hash  func(string) (string, error)
+	users     Creator
+	login     Authenticator
+	protected http.Handler
+	slots     chan struct{}
+	hash      func(string) (string, error)
 }
 
 // NewHandler bounds active registrations (including hashing and storage) to two
@@ -35,6 +37,13 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/sessions" && h.login != nil {
 		h.serveLogin(w, r)
 		return
+	}
+	if h.protected != nil && strings.HasPrefix(r.URL.Path, "/users/") {
+		parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/users/"), "/")
+		if parts[0] != "" && (len(parts) == 1 || len(parts) == 2 && parts[1] == "password") {
+			h.protected.ServeHTTP(w, r)
+			return
+		}
 	}
 	if r.URL.Path != "/users" {
 		httpapi.WriteError(w, 404, "NOT_FOUND", "Resource not found.")

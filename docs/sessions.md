@@ -34,12 +34,14 @@ and deactivation: begin a READ COMMITTED transaction, lock the user row, verify
 current credential/active state, issue via a repository bound to that transaction,
 and commit before publishing the token. Never send a token if commit fails.
 
-Password-change/deactivation tasks must take the same user-row lock, modify user
-state and call `RevokeAll` in that transaction. `users.SetActive` alone currently
+T14 password changes take the same user-row lock, replace the hash and call
+`RevokeAll` in that transaction; see [profile updates](profile.md). Future
+deactivation code must also lock the user row and revoke in its transaction. `users.SetActive` alone currently
 does not revoke sessions; it remains a low-level persistence method. Re-enabling
 a user must never clear revoked timestamps. Tests explicitly revoke before
 re-enablement and verify old sessions remain invalid. T12 tests observed login waits against direct database lifecycle updates.
-HTTP lifecycle integration and races through those endpoints remain later tasks.
+Password-change integration tests cover atomic rollback and concurrent changes.
+HTTP deactivation remains a later task.
 
 `Revoke` is idempotent for validly encoded tokens, including unknown and expired
 ones. It preserves an existing revocation timestamp. `RevokeAll` affects only the

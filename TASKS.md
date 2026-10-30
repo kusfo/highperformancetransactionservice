@@ -144,11 +144,13 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 ### T14 — Profile update endpoint
 
-- [ ] Complete
+- [x] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T02, T08, T09, T11, T12, T13.
 **Deliver:** Implement only agreed profile/credential changes and owner authorization.
 **Verify:** Test allowed fields, duplicate email if applicable, identity isolation and forbidden fields.
+
+**Validation (2026-10-30):** Implemented owner-only `PATCH /users/{userId}` and `PUT /users/{userId}/password`, wired through T13 authentication in the User binary. Profile updates allow only a 1–100-character, NUL-free `displayName`; email remains immutable. Password changes verify the current credential, replace the server-generated hash and revoke all sessions in a single transaction using login's user-row lock. Password work shares registration/login admission slots. `DOCKER_CONTEXT=desktop-linux make check-all` passed contracts, orchestration checks, formatting/vet, all five builds, unit/race tests and PostgreSQL integration. HTTPS tests verified ownership isolation, strict fields, Unicode names, unchanged credentials on profile edits, old-session rejection, new-password login and secret-free logs. Deferred commit failure preserved the original password and session; concurrent password changes produced one success and one invalid-current-password decline. Inactive users cannot be updated. No fixture databases remained; cleanup exited 0. See docs/profile.md. Deactivation, logout and operator administration remain separate work.
 
 ### T15 — User deactivation endpoint
 
