@@ -11,6 +11,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/kusfo/highperformancetransactionservice/src/postgres"
 )
 
 const Lifetime = 10 * time.Minute
@@ -66,8 +67,8 @@ func (r *Repository) Issue(ctx context.Context, userID string) (Issued, error) {
 	now := r.now().UTC().Truncate(time.Microsecond)
 	var s Session
 	err := r.db.QueryRow(ctx, `INSERT INTO identity.sessions(token_hash,user_id,issued_at,expires_at)
- SELECT $1,user_id,$3,$4 FROM identity.users WHERE user_id::text=$2 AND active
- RETURNING user_id::text,issued_at,expires_at`, hash[:], userID, now, now.Add(Lifetime)).Scan(&s.UserID, &s.IssuedAt, &s.ExpiresAt)
+ SELECT $1,user_id,$3,$4 FROM identity.users WHERE user_id=$2 AND active
+ RETURNING user_id::text,issued_at,expires_at`, hash[:], postgres.UUIDKey(userID), now, now.Add(Lifetime)).Scan(&s.UserID, &s.IssuedAt, &s.ExpiresAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Issued{}, ErrInvalidSession
 	}
@@ -115,7 +116,7 @@ func (r *Repository) Revoke(ctx context.Context, token string) error {
 // RevokeAll is intended to share a transaction with a password change or user
 // deactivation. The caller must serialize issuance using the same user-row lock.
 func (r *Repository) RevokeAll(ctx context.Context, userID string) error {
-	_, err := r.db.Exec(ctx, `UPDATE identity.sessions SET revoked_at=$2 WHERE user_id::text=$1 AND revoked_at IS NULL`, userID, r.now().UTC())
+	_, err := r.db.Exec(ctx, `UPDATE identity.sessions SET revoked_at=$2 WHERE user_id=$1 AND revoked_at IS NULL`, postgres.UUIDKey(userID), r.now().UTC())
 	if err != nil {
 		return storageError(ctx)
 	}

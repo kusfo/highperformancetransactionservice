@@ -9,6 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/kusfo/highperformancetransactionservice/src/passwords"
+	"github.com/kusfo/highperformancetransactionservice/src/postgres"
 	"github.com/kusfo/highperformancetransactionservice/src/sessions"
 	"github.com/kusfo/highperformancetransactionservice/src/users"
 )
@@ -30,7 +31,7 @@ func (s *Service) Update(ctx context.Context, id, name string) (users.User, erro
 		return users.User{}, err
 	}
 	var u users.User
-	err := s.db.QueryRow(ctx, `UPDATE identity.users SET display_name=$2 WHERE user_id::text=$1 AND active RETURNING user_id::text,email,display_name,active`, id, name).Scan(&u.UserID, &u.Email, &u.DisplayName, &u.Active)
+	err := s.db.QueryRow(ctx, `UPDATE identity.users SET display_name=$2 WHERE user_id=$1 AND active RETURNING user_id::text,email,display_name,active`, postgres.UUIDKey(id), name).Scan(&u.UserID, &u.Email, &u.DisplayName, &u.Active)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return users.User{}, users.ErrNotFound
 	}
@@ -63,7 +64,7 @@ func (s *Service) ChangePassword(ctx context.Context, id, current, next string) 
 		_ = tx.Rollback(cleanup)
 	}()
 	var hash string
-	err = tx.QueryRow(ctx, `SELECT password_hash FROM identity.users WHERE user_id::text=$1 AND active FOR UPDATE`, id).Scan(&hash)
+	err = tx.QueryRow(ctx, `SELECT password_hash FROM identity.users WHERE user_id=$1 AND active FOR UPDATE`, postgres.UUIDKey(id)).Scan(&hash)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return users.ErrNotFound
 	}
@@ -87,7 +88,7 @@ func (s *Service) ChangePassword(ctx context.Context, id, current, next string) 
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
-	if _, err = tx.Exec(ctx, `UPDATE identity.users SET password_hash=$2 WHERE user_id::text=$1`, id, hash); err != nil {
+	if _, err = tx.Exec(ctx, `UPDATE identity.users SET password_hash=$2 WHERE user_id=$1`, postgres.UUIDKey(id), hash); err != nil {
 		return storageError(ctx)
 	}
 	if err = sessions.NewRepository(tx, nil).RevokeAll(ctx, id); err != nil {

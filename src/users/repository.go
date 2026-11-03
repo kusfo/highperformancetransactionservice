@@ -12,6 +12,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/kusfo/highperformancetransactionservice/src/postgres"
 )
 
 var (
@@ -117,9 +118,9 @@ func (r *Repository) Create(ctx context.Context, email, passwordHash string, dis
 }
 
 func (r *Repository) ByID(ctx context.Context, id string) (User, error) {
-	// Compare as text so malformed IDs are not echoed by PostgreSQL UUID errors.
+	// Invalid IDs match no rows without sending an invalid UUID cast to PostgreSQL.
 	var user User
-	err := r.db.QueryRow(ctx, `SELECT user_id::text,email,display_name,active FROM identity.users WHERE user_id::text=$1`, id).Scan(&user.UserID, &user.Email, &user.DisplayName, &user.Active)
+	err := r.db.QueryRow(ctx, `SELECT user_id::text,email,display_name,active FROM identity.users WHERE user_id=$1`, postgres.UUIDKey(id)).Scan(&user.UserID, &user.Email, &user.DisplayName, &user.Active)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return User{}, ErrNotFound
 	}
@@ -148,7 +149,7 @@ func (r *Repository) CredentialsByEmail(ctx context.Context, email string) (Cred
 // SetActive retains the row, email reservation and credential data. Session
 // revocation and HTTP authorization are deliberately handled by later tasks.
 func (r *Repository) SetActive(ctx context.Context, id string, active bool) error {
-	tag, err := r.db.Exec(ctx, `UPDATE identity.users SET active=$2 WHERE user_id::text=$1`, id, active)
+	tag, err := r.db.Exec(ctx, `UPDATE identity.users SET active=$2 WHERE user_id=$1`, postgres.UUIDKey(id), active)
 	if err != nil {
 		return storageError(ctx, err)
 	}

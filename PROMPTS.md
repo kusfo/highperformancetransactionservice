@@ -345,3 +345,27 @@ can we start with t14 now?
 ## 82. Commit and Push T14
 
 Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?
+
+## 83. Parallel Repository Review
+
+please, review current status of the repo with parallel subagents. Reviewer for general status of the code, qa-expert for current status of the tests, architect-reviewer about how the current division in microservices align with domains and responsabilities.
+
+## 84. Fix UUID Query Predicates
+
+Thanks, let's fix the query predicates first
+
+## 85. Retry UUID Predicate Validation
+
+Sorry, I just started Docker, you can try it now
+
+## 86. Retry Validation After Connection Issues
+
+Please retry now, I've unstable connection
+
+## 87. Retry Validation Again
+
+Please retry now, I've unstable connection
+
+## 88. Commit and Push UUID Query Fixes
+
+Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?
