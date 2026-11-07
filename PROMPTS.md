@@ -369,3 +369,11 @@ Please retry now, I've unstable connection
 ## 88. Commit and Push UUID Query Fixes
 
 Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?
+
+## 89. Fix Unicode Handling
+
+Please, fix Unicode handling now
+
+## 90. Commit and Push Unicode Handling Fix
+
+Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?

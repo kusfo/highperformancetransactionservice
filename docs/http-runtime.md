@@ -70,3 +70,22 @@ TLS setup failures close the listener. Minimum supported TLS version is 1.2.
 TLS and shutdown tests using temporary certificates and local ephemeral ports.
 No database, broker, account endpoints or persistent certificate files are needed.
 Run `make check` for repository-wide formatting, vet, tests and builds.
+
+## Unicode request validation
+
+The shared JSON decoder rejects invalid UTF-8 and unpaired UTF-16 surrogate
+escapes with `400 INVALID_REQUEST` before decoding field names or values. This
+prevents Go's JSON decoder from silently replacing malformed input with U+FFFD,
+including in passwords. Valid surrogate pairs, literal or escaped U+FFFD, and
+escaped backslashes remain valid. No trimming or Unicode normalization is added;
+endpoint-specific length and NUL rules still apply.
+
+Regression tests exercise the shared decoder and registration, login, profile
+updates, and both fields of password-change requests. Malformed values must not
+reach hashing, authentication or persistence. Existing stored credentials are
+unchanged: this fix rejects malformed representations on future requests.
+
+Validation (2026-11-03): `DOCKER_CONTEXT=desktop-linux make check-all` passed
+contract checks, formatting/vet, all five builds, unit/race tests and PostgreSQL
+integration. Unicode regression tests passed for the shared decoder and each
+affected user endpoint. No fixture databases remained; cleanup exited 0.

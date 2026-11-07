@@ -61,6 +61,10 @@ func DecodeJSON(w http.ResponseWriter, r *http.Request, dst any) bool {
 		WriteError(w, 400, "INVALID_REQUEST", "Request body must be a JSON object.")
 		return false
 	}
+	if !validJSONUnicode(raw) {
+		decodeError(w, errors.New("invalid Unicode"))
+		return false
+	}
 	strict := json.NewDecoder(bytes.NewReader(raw))
 	strict.DisallowUnknownFields()
 	if err = strict.Decode(dst); err != nil {
