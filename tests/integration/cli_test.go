@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"io"
@@ -279,26 +280,55 @@ func TestServiceBinaries(t *testing.T) {
 				}
 			}
 			if name == "user" {
-				response, err := client.Post("https://"+addr+"/users", "application/json", strings.NewReader(`{"email":"binary@example.com","password":"example-password"}`))
-				if err != nil {
-					t.Fatal(err)
+				call := func(method, path, body, token string, want int) []byte {
+					t.Helper()
+					r, err := http.NewRequest(method, "https://"+addr+path, strings.NewReader(body))
+					if err != nil {
+						t.Fatal(err)
+					}
+					r.Header.Set("Content-Type", "application/json")
+					if token != "" {
+						r.Header.Set("Authorization", "Bearer "+token)
+					}
+					response, err := client.Do(r)
+					if err != nil {
+						t.Fatal(err)
+					}
+					defer response.Body.Close()
+					data, err := io.ReadAll(response.Body)
+					if err != nil || response.StatusCode != want {
+						t.Fatalf("binary %s %s status=%d want=%d", method, path, response.StatusCode, want)
+					}
+					return data
 				}
-				body, err := io.ReadAll(response.Body)
-				_ = response.Body.Close()
-				if err != nil || response.StatusCode != 201 || !strings.Contains(string(body), "userId") {
-					t.Fatal("binary registration failed")
+				data := call("POST", "/users", `{"email":"binary@example.com","password":"example-password"}`, "", 201)
+				var registered struct {
+					UserID string `json:"userId"`
 				}
-			}
-			if name == "user" {
-				response, err := client.Post("https://"+addr+"/sessions", "application/json", strings.NewReader(`{"email":"binary@example.com","password":"example-password"}`))
-				if err != nil {
-					t.Fatal(err)
+				if json.Unmarshal(data, &registered) != nil || registered.UserID == "" {
+					t.Fatal("binary registration response")
 				}
-				body, err := io.ReadAll(response.Body)
-				_ = response.Body.Close()
-				if err != nil || response.StatusCode != 200 || !strings.Contains(string(body), "accessToken") {
-					t.Fatal("binary login failed")
+				data = call("POST", "/sessions", `{"email":"binary@example.com","password":"example-password"}`, "", 200)
+				var session struct {
+					AccessToken string `json:"accessToken"`
 				}
+				if json.Unmarshal(data, &session) != nil || session.AccessToken == "" {
+					t.Fatal("binary login response")
+				}
+				path := "/users/" + registered.UserID
+				data = call("PATCH", path, `{"displayName":"Binary profile"}`, session.AccessToken, 200)
+				var updated struct {
+					DisplayName string `json:"displayName"`
+				}
+				if json.Unmarshal(data, &updated) != nil || updated.DisplayName != "Binary profile" {
+					t.Fatal("binary profile response")
+				}
+				if len(call("PUT", path+"/password", `{"currentPassword":"example-password","newPassword":"replacement-password"}`, session.AccessToken, 204)) != 0 {
+					t.Fatal("password change returned a body")
+				}
+				call("PATCH", path, `{"displayName":"Rejected"}`, session.AccessToken, 401)
+				call("POST", "/sessions", `{"email":"binary@example.com","password":"example-password"}`, "", 401)
+				call("POST", "/sessions", `{"email":"binary@example.com","password":"replacement-password"}`, "", 200)
 			}
 
 			if err := cmd.Process.Signal(syscall.SIGTERM); err != nil {

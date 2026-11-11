@@ -377,3 +377,11 @@ Please, fix Unicode handling now
 ## 90. Commit and Push Unicode Handling Fix
 
 Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?
+
+## 91. Strengthen T14 Tests
+
+Can we strengthen T14 tests as suggested by you?
+
+## 92. Commit and Push T14 Test Improvements
+
+Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?

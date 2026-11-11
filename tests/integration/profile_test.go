@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kusfo/highperformancetransactionservice/src/httpapi"
 	"github.com/kusfo/highperformancetransactionservice/src/login"
@@ -132,6 +133,10 @@ func TestProfileHTTPS(t *testing.T) {
 		var updated users.User
 		if json.Unmarshal([]byte(data), &updated) != nil || updated.UserID != owner.UserID || updated.Email != owner.Email || updated.DisplayName != name || !updated.Active {
 			t.Fatal("wrong profile response")
+		}
+		persisted, err := repo.ByID(ctx, owner.UserID)
+		if err != nil || persisted != updated {
+			t.Fatal("profile response differs from independently persisted profile")
 		}
 	}
 	for _, body := range []string{`{}`, `{"displayName":null}`, `{"displayName":""}`, `{"displayName":"a\u0000b"}`, `{"displayName":"Name","email":"other@example.com"}`, `{"active":false}`, `{"password":"replacement-password"}`} {
@@ -256,5 +261,125 @@ func TestPasswordChangeRollbackAndConcurrency(t *testing.T) {
 	}
 	if err := service.ChangePassword(ctx, owner.UserID, "replacement-password", "another-password"); !errors.Is(err, users.ErrNotFound) {
 		t.Fatal("inactive password changed")
+	}
+}
+
+// Observe the real backend's lock wait before releasing the competing update or
+// cancelling. Starting goroutines together alone cannot establish this overlap.
+func TestPasswordChangeObservedLockWait(t *testing.T) {
+	for _, cancelWaiting := range []bool{false, true} {
+		name := "recheck committed credential"
+		if cancelWaiting {
+			name = "cancel lock waiter"
+		}
+		t.Run(name, func(t *testing.T) {
+			conn, repo, ctx := userFixture(t)
+			hash, err := passwords.Hash("original-password")
+			if err != nil {
+				t.Fatal(err)
+			}
+			replacement, err := passwords.Hash("replacement-password")
+			if err != nil {
+				t.Fatal(err)
+			}
+			owner, err := repo.Create(ctx, "lock@example.com", hash, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			issuer := sessions.NewRepository(conn, nil)
+			token, err := issuer.Issue(ctx, owner.UserID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			worker, err := pgx.ConnectConfig(ctx, conn.Config().Copy())
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer worker.Close(context.Background())
+			observer, err := pgx.ConnectConfig(ctx, conn.Config().Copy())
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer observer.Close(context.Background())
+			tx, err := conn.Begin(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer tx.Rollback(context.Background())
+			if _, err = tx.Exec(ctx, `SELECT user_id FROM identity.users WHERE user_id=$1 FOR UPDATE`, owner.UserID); err != nil {
+				t.Fatal(err)
+			}
+			waitCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
+			defer cancel()
+			result := make(chan error, 1)
+			pid := worker.PgConn().PID()
+			go func() {
+				result <- profile.NewService(worker).ChangePassword(waitCtx, owner.UserID, "original-password", "another-password")
+			}()
+			deadline := time.Now().Add(5 * time.Second)
+			for {
+				var blocked bool
+				// Verify the password SELECT itself waits, not a later UPDATE after a stale read.
+				err = observer.QueryRow(ctx, `SELECT cardinality(pg_blocking_pids(pid))>0 AND query LIKE 'SELECT password_hash%' FROM pg_stat_activity WHERE pid=$1`, pid).Scan(&blocked)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if blocked {
+					break
+				}
+				select {
+				case <-result:
+					t.Fatal("password change completed before lock release")
+				default:
+				}
+				if time.Now().After(deadline) {
+					t.Fatal("password verification did not wait on user lock")
+				}
+				time.Sleep(10 * time.Millisecond)
+			}
+			if cancelWaiting {
+				cancel()
+				select {
+				case err = <-result:
+					if !errors.Is(err, context.Canceled) {
+						t.Fatal("cancelled waiter returned wrong error")
+					}
+				case <-time.After(5 * time.Second):
+					t.Fatal("cancelled waiter did not finish")
+				}
+				if err = tx.Rollback(ctx); err != nil {
+					t.Fatal(err)
+				}
+			} else {
+				if _, err = tx.Exec(ctx, `UPDATE identity.users SET password_hash=$2 WHERE user_id=$1`, owner.UserID, replacement); err != nil {
+					t.Fatal(err)
+				}
+				if err = tx.Commit(ctx); err != nil {
+					t.Fatal(err)
+				}
+				select {
+				case err = <-result:
+					if !errors.Is(err, profile.ErrCurrentPassword) {
+						t.Fatal("stale current password accepted")
+					}
+				case <-waitCtx.Done():
+					t.Fatal("password change did not finish")
+				}
+			}
+			saved, err := repo.CredentialsByEmail(ctx, owner.Email)
+			if err != nil {
+				t.Fatal(err)
+			}
+			expected := replacement
+			if cancelWaiting {
+				expected = hash
+			}
+			if saved.PasswordHash() != expected {
+				t.Fatal("failed password change modified credential")
+			}
+			if _, err = issuer.Authenticate(ctx, token.AccessToken()); err != nil {
+				t.Fatal("failed password change revoked session")
+			}
+		})
 	}
 }
