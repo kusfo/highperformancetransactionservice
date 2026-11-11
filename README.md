@@ -133,3 +133,8 @@ endpoints remain future implementation work.
 The confirmed asynchronous submission/status contract is documented in
 [operation contract](docs/operation-contract.md) and [OpenAPI](api/operation.openapi.json).
 Its examples and rejection/replay rules are validated by `make check-all`.
+
+The selected financial storage, lock order, ordered scheduling and closure-boundary
+model are documented in [financial persistence](docs/financial-persistence.md).
+This is the T05 design; financial runtime implementation and its concurrency
+proofs remain in the dependent tasks.

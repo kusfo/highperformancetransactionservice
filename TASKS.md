@@ -56,11 +56,13 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 ### T05 — Persistence concurrency design
 
-- [ ] Complete
+- [x] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T03, T04, T06.
 **Deliver:** Document shared Account/Transaction persistence, lock order, sequence scheduling and closure-generation model.
 **Verify:** Walk through duplicate intake, reordered messages, concurrent closure and reactivation; identify atomic commit boundaries.
+
+**Design validation (2026-11-11):** Added docs/financial-persistence.md selecting the shared financial component, READ COMMITTED transaction boundaries, sorted transaction-scoped request-key locks before account/operation rows, transactional lifetime sequences and persisted head scheduling. Immutable generation closure boundaries provide immediate effective declines and stable historical responses without an unbounded close-time update. Documented relay lease fencing, independent recovery scans, ambiguous-commit reconciliation and restricted identity access; added T17-A for role enforcement. Walked through twelve concurrency/recovery cases with later real-database proof obligations. Reviewed PostgreSQL 17 isolation/locking documentation and checked assigned task references, dependency cycles, local links and `git diff --check`. This is design validation, not runtime or load-test evidence; no application code or migrations changed, so the runtime suite was not rerun.
 
 ### T06 — PostgreSQL test harness and migration runner
 
@@ -179,15 +181,23 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 - [ ] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T03, T05, T06.
 **Deliver:** Add unique assigned numbers, single owner, bounded balance, metadata, status, sequence and lifecycle generation.
 **Verify:** Database tests enforce zero creation, balance bounds, uniqueness and immutable owner/number.
+
+### T17-A — Financial service database permissions
+
+- [ ] Complete
+
+**Depends on:** T11, T17.
+**Deliver:** Separate identity, financial HTTP, worker and relay roles; grant financial HTTP only the identity columns required by session checks and no credential access/identity writes. Keep workers independent of identity privileges. Document credential configuration and migration-owner separation.
+**Verify:** Real-role tests permit authentication but reject password_hash reads and identity writes; worker processing requires no identity permissions. Deployment cannot reuse the migration superuser as an application role.
 
 ### T18 — Account create endpoint
 
 - [ ] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T17, T17-A, T13.
 **Deliver:** Assign account number/owner server-side and accept agreed metadata only.
 **Verify:** Test multiple accounts per user, zero initial balance and rejected balance/owner overrides.
 
@@ -195,7 +205,7 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 - [ ] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T17, T17-A, T13.
 **Deliver:** Implement owner-scoped reads and pagination including disabled accounts.
 **Verify:** Test cross-user isolation, missing/inaccessible responses and stable pagination.
 
@@ -203,7 +213,7 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 - [ ] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T17, T17-A, T13.
 **Deliver:** Allow displayName/description changes only.
 **Verify:** Test field validation and rejection of balance, number and ownership changes.
 
@@ -211,7 +221,7 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 - [ ] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T04, T05, T17.
 **Deliver:** Add global operation/transaction IDs, immutable payload/outcomes, per-account sequence, outbox and lifecycle results.
 **Verify:** Database tests verify uniqueness, required relationships and rollback; no automatic outcome expiry.
 
@@ -219,7 +229,7 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 - [ ] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T04.
 **Deliver:** Implement nonzero symmetric amount limits, bounded balances and wider intermediate arithmetic.
 **Verify:** Boundary tests include zero, ±2147483647, -2147483648, underflow and overflow without wraparound.
 
@@ -227,7 +237,7 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 - [ ] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T21, T22.
 **Deliver:** Atomically check account/owner/status, assign sequence and store pending operation plus outbox; handle global duplicates.
 **Verify:** Real database concurrency tests prove one operation/outbox/sequence for duplicates, payload conflicts and no partial acceptance.
 
@@ -235,7 +245,7 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 - [ ] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T23, T17-A, T13.
 **Deliver:** Expose durable acceptance, Location header, pending and terminal replays, and intake errors.
 **Verify:** Handler tests with repository fixtures verify 202 only after commit, conflict isolation and lost-response retry identity.
 
@@ -243,7 +253,7 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 - [ ] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T21, T17-A, T13.
 **Deliver:** Return authorized pending or immutable terminal results with original balance-after.
 **Verify:** Test all states, 200 lookup for declines, cross-user isolation and original results after later account changes.
 
@@ -254,7 +264,7 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 - [ ] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T21, T22.
 **Deliver:** Process stored operations without bearer tokens; atomically commit balance/history/outcome or retained business decline.
 **Verify:** Invoke directly against PostgreSQL: verify success, insufficient funds, overflow, duplicates and injected rollback.
 
@@ -262,7 +272,7 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 - [ ] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T23, T26.
 **Deliver:** Select earliest unresolved operation, serialize same-account execution and recover notification gaps.
 **Verify:** Database tests force out-of-order triggers, competing workers and transient failures; later debit cannot overtake earlier deposit.
 
@@ -278,7 +288,7 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 - [ ] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T21, T28.
 **Deliver:** Publish committed operation notifications with confirms and durable publication tracking.
 **Verify:** Broker/database tests inject broker outage and crash after publish; no event is lost and duplicates are allowed.
 
@@ -286,7 +296,7 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 - [ ] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T27, T29.
 **Deliver:** Dispatch operation notifications into ordered scheduling and acknowledge only committed outcomes.
 **Verify:** Test duplicate delivery and commit-before-ack crash; one balance effect and one history record.
 
@@ -294,7 +304,7 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 - [ ] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T30.
 **Deliver:** Add bounded backoff, unresolved-work reconciliation and safe replay procedures.
 **Verify:** Simulate poison message, relay outage and stranded operation; accepted work is recoverable without duplicate effects.
 
@@ -302,7 +312,7 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 - [ ] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T23, T27.
 **Deliver:** Add configurable intake limits and bounded worker concurrency/prefetch.
 **Verify:** Overload tests reject new work before acceptance while existing-ID retries remain readable; no orphan pending operations.
 
@@ -313,7 +323,7 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 - [ ] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T21, T22, T26.
 **Deliver:** Atomically withdraw remaining balance, disable account, preserve result and invalidate pending generation durably.
 **Verify:** Direct database tests cover zero/nonzero balance, concurrent closure and closure-versus-processing; rollback leaves no partial state.
 
@@ -321,7 +331,7 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 - [ ] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T33.
 **Deliver:** Use lifecycle request IDs; reactivate without money changes and replay old outcomes without repeating actions.
 **Verify:** Test disable/reactivate cycles, conflicting IDs and old disable retry; pending old-generation work stays declined.
 
@@ -329,7 +339,7 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 - [ ] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T34, T17-A, T13.
 **Deliver:** Expose owner-only lifecycle handlers and recorded closure results.
 **Verify:** Handler tests verify status, withdrawal IDs, no zero-balance transaction and no effects from repeated requests.
 
@@ -337,7 +347,7 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 - [ ] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T25, T27, T34.
 **Deliver:** Make closure-invalidated pending operations appear as retained ACCOUNT_DISABLED declines before/after worker reconciliation.
 **Verify:** Close then immediately query/reactivate before worker runs; status is declined and no old operation executes.
 
@@ -345,7 +355,7 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 - [ ] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T21, T19.
 **Deliver:** Add owner-scoped paginated history including closure withdrawals and disabled accounts.
 **Verify:** Seed history directly: verify ordering/pagination, isolation and readability after disabling.
 
@@ -353,7 +363,7 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 - [ ] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T15, T16, T30.
 **Deliver:** Verify expiry, manual revocation and user deactivation do not cancel durably accepted work.
 **Verify:** Gate worker execution, change authentication state, resume and verify original work completes while new HTTP requests fail.
 
