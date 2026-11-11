@@ -177,10 +177,10 @@ Authentication, token expiry/revocation, and user active status are checked at t
 
 ## Remaining Decisions
 
-- Handling of nonaccepted disabled-account balance-operation attempts (T04).
+- Financial persistence lock order, acceptance sequencing and closure-generation design (T05).
 - Optional individual transaction lookup is deferred; cursor pagination is confirmed and operation lookup is required.
 - Browser token handling and manual administration procedures; opaque tokens, no refresh and current-session logout are confirmed.
-- Overload admission limits and responses. Performance targets are deferred until expected traffic is established.
+- Exact admission limits and retry/backoff tuning (T32). Overload response semantics are confirmed; performance targets remain deferred.
 
 ## Asynchronous Operation Contract
 
@@ -191,6 +191,18 @@ The asynchronous contract replaces the earlier immediate `201` transaction-succe
 - identical pending retries refer to the existing operation; conflicting payloads return `409`. Duplicate queue deliveries never cause additional balance effects. Completed replays retain the established ownership and outcome rules.
 - **Confirmed ordering:** balance operations execute in acceptance order per account; no cross-account ordering is required. Acceptance is the durable recorded order, not client timestamps or request arrival time. Concurrent acceptance establishes one order; duplicates keep their original position. An earlier accepted deposit must reach its outcome before a later withdrawal is evaluated. A transient processing failure must not let later operations overtake it.
 - **Confirmed closure behavior:** operations still pending when the account closes must decline with `ACCOUNT_DISABLED`, without changing the balance or creating a successful transaction. Closure does not drain pending work first. These declines remain in effect after reactivation; old pending operations cannot revive. Operations completed before closure retain their recorded outcomes. Closure is a lifecycle boundary that takes precedence over pending balance-operation ordering.
-- **Open:** specify overload behavior. Authentication changes after acceptance do not cancel queued work. Accepted overflow and account-closure declines are retained indefinitely. Queue acceptance preserves atomic closure.
+- **Confirmed overload:** caller quotas return `429 RATE_LIMITED`; global backlog/capacity rejection returns `503 SERVICE_UNAVAILABLE`, both with positive-seconds `Retry-After`. Already accepted IDs bypass new-work admission controls when storage is available. Authentication changes after acceptance do not cancel queued work. Accepted overflow and account-closure declines are retained indefinitely. Queue acceptance preserves atomic closure.
 
 See `PLAN.md` for the durable intake, outbox, and idempotent worker design.
+
+### Operation Response and Intake Rejection Contract
+
+`api/operation.openapi.json` defines submission and lookup. Submission accepts exactly `operationId` and `amount`; reject null, unknown/duplicate fields, malformed Unicode and noninteger JSON tokens (including decimal/exponent notation). UUID spellings are normalized to UUID values. The body operationId is the only idempotency identity; reject a caller-supplied Idempotency-Key header on transaction submission.
+
+Authenticate, validate, and authorize the target account before checking global identity. Existing matching accepted IDs replay before disabled-account or intake quota/backlog checks. Conflicting reuse returns `409 OPERATION_ID_CONFLICT` without exposing stored payloads or owners. Missing and inaccessible accounts/operations share `404 NOT_FOUND`. New disabled-account and overload rejections reserve no operation ID; retrying the same ID/payload after recovery or reactivation may create a later acceptance. Generic 5xx/timeouts remain ambiguous: retry the same ID/payload, never infer failure or replace its ID.
+
+All operation resources contain operationId, accountNumber, amount, source (`user` or `closure`), acceptedAt and status. Pending resources contain no terminal fields. Success adds transactionId, original balanceAfter and completedAt. Decline adds completedAt and error `{code,message,httpStatus}`, without transactionId or balanceAfter. INSUFFICIENT_FUNDS/BALANCE_OVERFLOW carry metadata 422; closure declines carry ACCOUNT_DISABLED with metadata 409. Infrastructure errors remain pending/recoverable rather than becoming business declines. Terminal resources are immutable and retained indefinitely.
+
+POST returns `202` for a new pending snapshot or pending replay and `200` for a terminal replay, with Location in both cases. GET always returns `200` for an authorized existing state, even a business decline; responses use Cache-Control: no-store. There is no completion-time guarantee. acceptedAt does not define ordering; durable per-account acceptance order does. Positive-balance closure operations are immediately succeeded and owner-queryable, with negative amount and balanceAfter zero; zero-balance closure creates none. A matching owner-authorized POST replay of an internal closure operation also returns that original terminal result.
+
+Operations pending at closure become durably declined at the boundary. Subsequent status reads expose ACCOUNT_DISABLED even if physical outcome materialization is deferred; their completedAt records the closure boundary time. Later reactivation cannot revive them. Full retry, overload and polling semantics are documented in `docs/operation-contract.md`; persistence mechanics remain T05 work.

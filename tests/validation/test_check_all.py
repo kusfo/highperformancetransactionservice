@@ -39,6 +39,7 @@ if name == 'go':
 if name == 'python':
     if args[:2] == ['-m', 'pip']: sys.exit(0)
     if args[:2] == ['-m', 'unittest']: check('orchestration')
+    if args == ['tests/contracts/validate_operation.py']: check('operation-contracts')
     check('account-contracts' if args == ['tests/contracts/validate_account.py'] else 'contracts')
 
 command = args[0]
@@ -120,10 +121,10 @@ class CheckAllTests(unittest.TestCase):
     def test_success_runs_all_groups(self):
         result, groups = self.run_validation()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual(set(groups), {'contracts', 'account-contracts', 'orchestration', 'format', 'vet', 'unit', 'build', 'race', 'integration'})
+        self.assertEqual(set(groups), {'contracts', 'account-contracts', 'operation-contracts', 'orchestration', 'format', 'vet', 'unit', 'build', 'race', 'integration'})
 
     def test_each_failure_propagates_and_cleans_up(self):
-        for group in ('contracts', 'account-contracts', 'orchestration', 'format', 'vet', 'unit', 'build', 'race', 'integration'):
+        for group in ('contracts', 'account-contracts', 'operation-contracts', 'orchestration', 'format', 'vet', 'unit', 'build', 'race', 'integration'):
             with self.subTest(group=group):
                 result, groups = self.run_validation(group)
                 self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)

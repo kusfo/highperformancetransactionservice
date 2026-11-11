@@ -1,0 +1,992 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Asynchronous Operation API",
+    "version": "0.1.0",
+    "description": "Confirmed T04 contract. Submission and lookup only; GET transaction history is defined in account.openapi.json. Runtime behavior belongs to later tasks."
+  },
+  "servers": [
+    {
+      "url": "https://localhost"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/accounts/{accountNumber}/transactions": {
+      "parameters": [
+        {
+          "name": "accountNumber",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Opaque account identifier; preserve leading zeros."
+          }
+        }
+      ],
+      "post": {
+        "operationId": "submitBalanceOperation",
+        "description": "Authenticate and authorize target first. Identical accepted IDs replay before current disabled-state/backlog/quota checks. Conflicting reuse returns a generic 409 with no stored payload. New admissions commit pending before returning 202; a lost response is retried with the same ID and amount. Caller-supplied Idempotency-Key is rejected: operationId in the body is the sole operation identity.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Submission"
+              },
+              "examples": {
+                "deposit": {
+                  "value": {
+                    "operationId": "550e8400-e29b-41d4-a716-446655440000",
+                    "amount": 250
+                  }
+                },
+                "withdrawal": {
+                  "value": {
+                    "operationId": "550e8400-e29b-41d4-a716-446655440000",
+                    "amount": -250
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Durably accepted pending snapshot, not balance success. May already have completed by receipt.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PendingOperation"
+                },
+                "examples": {
+                  "accepted": {
+                    "value": {
+                      "operationId": "550e8400-e29b-41d4-a716-446655440000",
+                      "accountNumber": "0000123456",
+                      "amount": 250,
+                      "source": "user",
+                      "acceptedAt": "2026-11-11T10:00:00Z",
+                      "status": "pending"
+                    }
+                  },
+                  "pendingReplay": {
+                    "value": {
+                      "operationId": "550e8400-e29b-41d4-a716-446655440000",
+                      "accountNumber": "0000123456",
+                      "amount": 250,
+                      "source": "user",
+                      "acceptedAt": "2026-11-11T10:00:00Z",
+                      "status": "pending"
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Relative operation URL /operations/{operationId}, using canonical UUID spelling."
+              }
+            }
+          },
+          "200": {
+            "description": "Existing terminal outcome; never creates another operation or transaction.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminalOperation"
+                },
+                "examples": {
+                  "success": {
+                    "value": {
+                      "operationId": "550e8400-e29b-41d4-a716-446655440000",
+                      "accountNumber": "0000123456",
+                      "amount": 250,
+                      "source": "user",
+                      "acceptedAt": "2026-11-11T10:00:00Z",
+                      "status": "succeeded",
+                      "transactionId": "550e8400-e29b-41d4-a716-446655440001",
+                      "balanceAfter": 250,
+                      "completedAt": "2026-11-11T10:00:01Z"
+                    }
+                  },
+                  "successReplayAfterLaterBalanceChange": {
+                    "value": {
+                      "operationId": "550e8400-e29b-41d4-a716-446655440000",
+                      "accountNumber": "0000123456",
+                      "amount": 250,
+                      "source": "user",
+                      "acceptedAt": "2026-11-11T10:00:00Z",
+                      "status": "succeeded",
+                      "transactionId": "550e8400-e29b-41d4-a716-446655440001",
+                      "balanceAfter": 250,
+                      "completedAt": "2026-11-11T10:00:01Z"
+                    }
+                  },
+                  "insufficientFunds": {
+                    "value": {
+                      "operationId": "550e8400-e29b-41d4-a716-446655440000",
+                      "accountNumber": "0000123456",
+                      "amount": -250,
+                      "source": "user",
+                      "acceptedAt": "2026-11-11T10:00:00Z",
+                      "status": "declined",
+                      "completedAt": "2026-11-11T10:00:01Z",
+                      "error": {
+                        "code": "INSUFFICIENT_FUNDS",
+                        "message": "Insufficient funds.",
+                        "httpStatus": 422
+                      }
+                    }
+                  },
+                  "sameDeclineAfterFundsArrive": {
+                    "value": {
+                      "operationId": "550e8400-e29b-41d4-a716-446655440000",
+                      "accountNumber": "0000123456",
+                      "amount": -250,
+                      "source": "user",
+                      "acceptedAt": "2026-11-11T10:00:00Z",
+                      "status": "declined",
+                      "completedAt": "2026-11-11T10:00:01Z",
+                      "error": {
+                        "code": "INSUFFICIENT_FUNDS",
+                        "message": "Insufficient funds.",
+                        "httpStatus": 422
+                      }
+                    }
+                  },
+                  "overflow": {
+                    "value": {
+                      "operationId": "550e8400-e29b-41d4-a716-446655440000",
+                      "accountNumber": "0000123456",
+                      "amount": 250,
+                      "source": "user",
+                      "acceptedAt": "2026-11-11T10:00:00Z",
+                      "status": "declined",
+                      "completedAt": "2026-11-11T10:00:01Z",
+                      "error": {
+                        "code": "BALANCE_OVERFLOW",
+                        "message": "Balance limit exceeded.",
+                        "httpStatus": 422
+                      }
+                    }
+                  },
+                  "closedWhilePending": {
+                    "value": {
+                      "operationId": "550e8400-e29b-41d4-a716-446655440000",
+                      "accountNumber": "0000123456",
+                      "amount": 250,
+                      "source": "user",
+                      "acceptedAt": "2026-11-11T10:00:00Z",
+                      "status": "declined",
+                      "completedAt": "2026-11-11T10:00:01Z",
+                      "error": {
+                        "code": "ACCOUNT_DISABLED",
+                        "message": "Account was closed before processing.",
+                        "httpStatus": 409
+                      }
+                    }
+                  },
+                  "sameClosureDeclineAfterReactivation": {
+                    "value": {
+                      "operationId": "550e8400-e29b-41d4-a716-446655440000",
+                      "accountNumber": "0000123456",
+                      "amount": 250,
+                      "source": "user",
+                      "acceptedAt": "2026-11-11T10:00:00Z",
+                      "status": "declined",
+                      "completedAt": "2026-11-11T10:00:01Z",
+                      "error": {
+                        "code": "ACCOUNT_DISABLED",
+                        "message": "Account was closed before processing.",
+                        "httpStatus": 409
+                      }
+                    }
+                  },
+                  "internalClosureWithdrawal": {
+                    "value": {
+                      "operationId": "550e8400-e29b-41d4-a716-446655440002",
+                      "accountNumber": "0000123456",
+                      "amount": -250,
+                      "source": "closure",
+                      "acceptedAt": "2026-11-11T10:00:00Z",
+                      "status": "succeeded",
+                      "transactionId": "550e8400-e29b-41d4-a716-446655440003",
+                      "balanceAfter": 0,
+                      "completedAt": "2026-11-11T10:00:01Z"
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Relative operation URL /operations/{operationId}, using canonical UUID spelling."
+              }
+            }
+          },
+          "400": {
+            "description": "HTTP 400; no operation outcome or reservation is created by this rejection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "INVALID_REQUEST": {
+                    "value": {
+                      "code": "INVALID_REQUEST",
+                      "message": "Request rejected."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401; no operation outcome or reservation is created by this rejection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "UNAUTHORIZED": {
+                    "value": {
+                      "code": "UNAUTHORIZED",
+                      "message": "Request rejected."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HTTP 404; no operation outcome or reservation is created by this rejection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "NOT_FOUND": {
+                    "value": {
+                      "code": "NOT_FOUND",
+                      "message": "Request rejected."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "HTTP 409; no operation outcome or reservation is created by this rejection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "OPERATION_ID_CONFLICT": {
+                    "value": {
+                      "code": "OPERATION_ID_CONFLICT",
+                      "message": "Request rejected."
+                    }
+                  },
+                  "ACCOUNT_DISABLED": {
+                    "value": {
+                      "code": "ACCOUNT_DISABLED",
+                      "message": "Request rejected."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "HTTP 429; no operation outcome or reservation is created by this rejection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "RATE_LIMITED": {
+                    "value": {
+                      "code": "RATE_LIMITED",
+                      "message": "Request rejected."
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[1-9][0-9]*$"
+                },
+                "description": "Positive decimal seconds before retry; this does not indicate acceptance."
+              }
+            }
+          },
+          "503": {
+            "description": "HTTP 503; no operation outcome or reservation is created by this rejection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "SERVICE_UNAVAILABLE": {
+                    "value": {
+                      "code": "SERVICE_UNAVAILABLE",
+                      "message": "Request rejected."
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Retry-After": {
+                "required": true,
+                "schema": {
+                  "type": "string",
+                  "pattern": "^[1-9][0-9]*$"
+                },
+                "description": "Positive decimal seconds before retry; this does not indicate acceptance."
+              }
+            }
+          },
+          "500": {
+            "description": "Ambiguous failure: may occur after acceptance. Retry the same ID/payload.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "unknown": {
+                    "value": {
+                      "code": "INTERNAL_ERROR",
+                      "message": "An internal error occurred."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/operations/{operationId}": {
+      "parameters": [
+        {
+          "name": "operationId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "readOperation",
+        "description": "Authorize the account owner on every lookup, including closure-generated operations. Return the recorded outcome even after disabling/reactivation. A business decline still uses HTTP 200. Pending infrastructure retries remain pending; no execution-time guarantee is implied.",
+        "responses": {
+          "200": {
+            "description": "Current operation state, including immutable terminal outcomes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Operation"
+                },
+                "examples": {
+                  "pending": {
+                    "value": {
+                      "operationId": "550e8400-e29b-41d4-a716-446655440000",
+                      "accountNumber": "0000123456",
+                      "amount": 250,
+                      "source": "user",
+                      "acceptedAt": "2026-11-11T10:00:00Z",
+                      "status": "pending"
+                    }
+                  },
+                  "success": {
+                    "value": {
+                      "operationId": "550e8400-e29b-41d4-a716-446655440000",
+                      "accountNumber": "0000123456",
+                      "amount": 250,
+                      "source": "user",
+                      "acceptedAt": "2026-11-11T10:00:00Z",
+                      "status": "succeeded",
+                      "transactionId": "550e8400-e29b-41d4-a716-446655440001",
+                      "balanceAfter": 250,
+                      "completedAt": "2026-11-11T10:00:01Z"
+                    }
+                  },
+                  "successReplayAfterLaterBalanceChange": {
+                    "value": {
+                      "operationId": "550e8400-e29b-41d4-a716-446655440000",
+                      "accountNumber": "0000123456",
+                      "amount": 250,
+                      "source": "user",
+                      "acceptedAt": "2026-11-11T10:00:00Z",
+                      "status": "succeeded",
+                      "transactionId": "550e8400-e29b-41d4-a716-446655440001",
+                      "balanceAfter": 250,
+                      "completedAt": "2026-11-11T10:00:01Z"
+                    }
+                  },
+                  "insufficientFunds": {
+                    "value": {
+                      "operationId": "550e8400-e29b-41d4-a716-446655440000",
+                      "accountNumber": "0000123456",
+                      "amount": -250,
+                      "source": "user",
+                      "acceptedAt": "2026-11-11T10:00:00Z",
+                      "status": "declined",
+                      "completedAt": "2026-11-11T10:00:01Z",
+                      "error": {
+                        "code": "INSUFFICIENT_FUNDS",
+                        "message": "Insufficient funds.",
+                        "httpStatus": 422
+                      }
+                    }
+                  },
+                  "sameDeclineAfterFundsArrive": {
+                    "value": {
+                      "operationId": "550e8400-e29b-41d4-a716-446655440000",
+                      "accountNumber": "0000123456",
+                      "amount": -250,
+                      "source": "user",
+                      "acceptedAt": "2026-11-11T10:00:00Z",
+                      "status": "declined",
+                      "completedAt": "2026-11-11T10:00:01Z",
+                      "error": {
+                        "code": "INSUFFICIENT_FUNDS",
+                        "message": "Insufficient funds.",
+                        "httpStatus": 422
+                      }
+                    }
+                  },
+                  "overflow": {
+                    "value": {
+                      "operationId": "550e8400-e29b-41d4-a716-446655440000",
+                      "accountNumber": "0000123456",
+                      "amount": 250,
+                      "source": "user",
+                      "acceptedAt": "2026-11-11T10:00:00Z",
+                      "status": "declined",
+                      "completedAt": "2026-11-11T10:00:01Z",
+                      "error": {
+                        "code": "BALANCE_OVERFLOW",
+                        "message": "Balance limit exceeded.",
+                        "httpStatus": 422
+                      }
+                    }
+                  },
+                  "closedWhilePending": {
+                    "value": {
+                      "operationId": "550e8400-e29b-41d4-a716-446655440000",
+                      "accountNumber": "0000123456",
+                      "amount": 250,
+                      "source": "user",
+                      "acceptedAt": "2026-11-11T10:00:00Z",
+                      "status": "declined",
+                      "completedAt": "2026-11-11T10:00:01Z",
+                      "error": {
+                        "code": "ACCOUNT_DISABLED",
+                        "message": "Account was closed before processing.",
+                        "httpStatus": 409
+                      }
+                    }
+                  },
+                  "sameClosureDeclineAfterReactivation": {
+                    "value": {
+                      "operationId": "550e8400-e29b-41d4-a716-446655440000",
+                      "accountNumber": "0000123456",
+                      "amount": 250,
+                      "source": "user",
+                      "acceptedAt": "2026-11-11T10:00:00Z",
+                      "status": "declined",
+                      "completedAt": "2026-11-11T10:00:01Z",
+                      "error": {
+                        "code": "ACCOUNT_DISABLED",
+                        "message": "Account was closed before processing.",
+                        "httpStatus": 409
+                      }
+                    }
+                  },
+                  "internalClosureWithdrawal": {
+                    "value": {
+                      "operationId": "550e8400-e29b-41d4-a716-446655440002",
+                      "accountNumber": "0000123456",
+                      "amount": -250,
+                      "source": "closure",
+                      "acceptedAt": "2026-11-11T10:00:00Z",
+                      "status": "succeeded",
+                      "transactionId": "550e8400-e29b-41d4-a716-446655440003",
+                      "balanceAfter": 0,
+                      "completedAt": "2026-11-11T10:00:01Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "HTTP 400; no operation outcome or reservation is created by this rejection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "INVALID_REQUEST": {
+                    "value": {
+                      "code": "INVALID_REQUEST",
+                      "message": "Request rejected."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "HTTP 401; no operation outcome or reservation is created by this rejection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "UNAUTHORIZED": {
+                    "value": {
+                      "code": "UNAUTHORIZED",
+                      "message": "Request rejected."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HTTP 404; no operation outcome or reservation is created by this rejection.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "NOT_FOUND": {
+                    "value": {
+                      "code": "NOT_FOUND",
+                      "message": "Request rejected."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Storage/service unavailable; this says nothing about the operation outcome.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "unavailable": {
+                    "value": {
+                      "code": "SERVICE_UNAVAILABLE",
+                      "message": "Service unavailable."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "Submission": {
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "integer",
+            "minimum": -2147483647,
+            "maximum": 2147483647,
+            "not": {
+              "const": 0
+            },
+            "description": "Signed integer cents; send an integer JSON token, without decimal point or exponent."
+          }
+        },
+        "required": [
+          "operationId",
+          "amount"
+        ],
+        "additionalProperties": false
+      },
+      "PendingOperation": {
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountNumber": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Opaque account identifier; preserve leading zeros."
+          },
+          "amount": {
+            "type": "integer",
+            "minimum": -2147483647,
+            "maximum": 2147483647,
+            "not": {
+              "const": 0
+            },
+            "description": "Signed integer cents; send an integer JSON token, without decimal point or exponent."
+          },
+          "source": {
+            "const": "user",
+            "type": "string"
+          },
+          "acceptedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "const": "pending",
+            "type": "string"
+          }
+        },
+        "required": [
+          "operationId",
+          "accountNumber",
+          "amount",
+          "source",
+          "acceptedAt",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "SucceededOperation": {
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountNumber": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Opaque account identifier; preserve leading zeros."
+          },
+          "amount": {
+            "type": "integer",
+            "minimum": -2147483647,
+            "maximum": 2147483647,
+            "not": {
+              "const": 0
+            },
+            "description": "Signed integer cents; send an integer JSON token, without decimal point or exponent."
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "user",
+              "closure"
+            ]
+          },
+          "acceptedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "const": "succeeded",
+            "type": "string"
+          },
+          "transactionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "balanceAfter": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "operationId",
+          "accountNumber",
+          "amount",
+          "source",
+          "acceptedAt",
+          "status",
+          "transactionId",
+          "balanceAfter",
+          "completedAt"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "source": {
+                  "const": "closure"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "amount": {
+                  "maximum": -1
+                },
+                "balanceAfter": {
+                  "const": 0
+                }
+              }
+            }
+          }
+        ]
+      },
+      "DeclinedOperation": {
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountNumber": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Opaque account identifier; preserve leading zeros."
+          },
+          "amount": {
+            "type": "integer",
+            "minimum": -2147483647,
+            "maximum": 2147483647,
+            "not": {
+              "const": 0
+            },
+            "description": "Signed integer cents; send an integer JSON token, without decimal point or exponent."
+          },
+          "source": {
+            "const": "user",
+            "type": "string"
+          },
+          "acceptedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "const": "declined",
+            "type": "string"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "error": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "const": "INSUFFICIENT_FUNDS",
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "httpStatus": {
+                    "const": 422,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message",
+                  "httpStatus"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "const": "BALANCE_OVERFLOW",
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "httpStatus": {
+                    "const": 422,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message",
+                  "httpStatus"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "const": "ACCOUNT_DISABLED",
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "httpStatus": {
+                    "const": 409,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message",
+                  "httpStatus"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "required": [
+          "operationId",
+          "accountNumber",
+          "amount",
+          "source",
+          "acceptedAt",
+          "status",
+          "completedAt",
+          "error"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "error": {
+                  "properties": {
+                    "code": {
+                      "const": "INSUFFICIENT_FUNDS"
+                    }
+                  }
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "amount": {
+                  "maximum": -1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "error": {
+                  "properties": {
+                    "code": {
+                      "const": "BALANCE_OVERFLOW"
+                    }
+                  }
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "amount": {
+                  "minimum": 1
+                }
+              }
+            }
+          }
+        ]
+      },
+      "TerminalOperation": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/SucceededOperation"
+          },
+          {
+            "$ref": "#/components/schemas/DeclinedOperation"
+          }
+        ]
+      },
+      "Operation": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/PendingOperation"
+          },
+          {
+            "$ref": "#/components/schemas/SucceededOperation"
+          },
+          {
+            "$ref": "#/components/schemas/DeclinedOperation"
+          }
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

@@ -56,6 +56,7 @@ if [ "$mode" = --all ]; then
  python -m pip install --quiet --disable-pip-version-check --root-user-action=ignore -r tests/contracts/requirements.txt
  python tests/contracts/validate_user_session.py
  python tests/contracts/validate_account.py
+ python tests/contracts/validate_operation.py
  python -m unittest discover -s tests/validation -v
  ')
  docker start -ai "$contract_id" < "$archive"

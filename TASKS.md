@@ -46,11 +46,13 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 ### T04 — Async operation contract
 
-- [ ] Complete
+- [x] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T02, T03.
 **Deliver:** Specify submission/status schemas, intake rejection identity, retained declines and overload responses.
 **Verify:** Validate pending/success/decline/replay examples; distinguish HTTP lookup success from business outcome.
+
+**Validation (2026-11-11):** Confirmed unreserved disabled/overload rejections, accepted-ID replay before admission checks, 429/503 overload responses with Retry-After and explicit operation resource shapes. Added `api/operation.openapi.json`, docs/operation-contract.md and CI contract validation. OpenAPI and 33 examples passed with amount boundaries, terminal-field invariants, error metadata, overload headers and immutable replay fixtures; authorized GET remains HTTP 200 for declines. Full `DOCKER_CONTEXT=desktop-linux make check-all` passed all three contracts, orchestration failure propagation, formatting/vet, five builds, unit/race tests and PostgreSQL integration. No fixture databases remained; cleanup exited 0. Schema/example validation does not prove runtime financial processing; T05 and later implementation tasks retain that work.
 
 ### T05 — Persistence concurrency design
 

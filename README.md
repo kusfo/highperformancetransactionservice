@@ -129,3 +129,7 @@ The confirmed Account API and lifecycle retry contract are documented in
 [account contract](docs/account-contract.md) and [OpenAPI](api/account.openapi.json).
 `make check-all` validates both the user/session and account contracts. Account
 endpoints remain future implementation work.
+
+The confirmed asynchronous submission/status contract is documented in
+[operation contract](docs/operation-contract.md) and [OpenAPI](api/operation.openapi.json).
+Its examples and rejection/replay rules are validated by `make check-all`.

@@ -405,3 +405,23 @@ Accept these lifecycle rules
 ## 97. Commit and Push T03
 
 Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?
+
+## 98. Start T04
+
+Let's start with T04
+
+## 99. Confirm T04 Rejection and Retry Rules
+
+Accept these rejection/retry rules
+
+## 100. Confirm T04 Overload Rules
+
+Accept these overload rules
+
+## 101. Confirm T04 Response Shapes
+
+Accept these response shapes
+
+## 102. Commit and Push T04
+
+Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?
