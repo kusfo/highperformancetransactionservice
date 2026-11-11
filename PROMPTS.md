@@ -385,3 +385,23 @@ Can we strengthen T14 tests as suggested by you?
 ## 92. Commit and Push T14 Test Improvements
 
 Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?
+
+## 93. Start T03
+
+Let's start with T03
+
+## 94. Confirm T03 Metadata Rules
+
+Accept these metadata rules
+
+## 95. Confirm T03 List Rules
+
+Accept these list rules
+
+## 96. Confirm T03 Lifecycle Rules
+
+Accept these lifecycle rules
+
+## 97. Commit and Push T03
+
+Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?

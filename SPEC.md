@@ -76,12 +76,12 @@ Balance operations are permitted only for the currently authenticated owner. The
 | Operation | Endpoint | Request / response |
 | --- | --- | --- |
 | Create account | `POST /accounts` | Accept account metadata; return `201` with `accountNumber`, `userId`, and `balance: 0`. Editable metadata consists of `displayName` and `description`; the single virtual currency is implicit. |
-| List own accounts | `GET /accounts` | Return accounts owned by the authenticated user; pagination remains open. |
+| List own accounts | `GET /accounts` | Return accounts owned by the authenticated user; use cursor pagination as specified below. |
 | Read account | `GET /accounts/{accountNumber}` | Return account details and current balance to its owner. |
 | Update account | `PATCH /accounts/{accountNumber}` | Update `displayName` and `description` only. |
 | Disable account | `DELETE /accounts/{accountNumber}` | Disable the account and automatically withdraw any remaining balance. return `200` with account status and the closure withdrawal IDs, if a withdrawal occurred. |
 | Reactivate account | `POST /accounts/{accountNumber}/reactivation` | Restore an account to active status without changing its balance or creating a balance transaction. |
-| List transactions | `GET /accounts/{accountNumber}/transactions` | Return transaction history to the owner, including after the account is disabled; pagination remains open. |
+| List transactions | `GET /accounts/{accountNumber}/transactions` | Return transaction history to the owner, including after the account is disabled; use cursor pagination as specified below. |
 
 The service assigns unique account numbers. Updates cannot change the balance, account number, or owner; ordinary balance changes use the Transaction service. Ownership transfer is outside the current scope. Each account has exactly one owner; shared ownership is outside scope. Editable metadata consists of `displayName` and `description`.
 
@@ -105,7 +105,27 @@ A disabled account may be reactivated. Reactivation changes its status to active
 
 Only the authenticated owner may reactivate an account. Reactivating an already active account returns its current active state without additional effects. Previous operation outcomes remain unchanged: retries of operations completed before disabling still replay those outcomes after reactivation. A new user interaction uses a new `operationId`.
 
-Concurrent disabling and reactivation requests must have a consistent order, with each request evaluated against the account state at that point. Retrying an old disable request after reactivation must not unintentionally disable the account again. Disable/reactivate requests require a client-generated lifecycle request ID, preserved on automatic retries. Its recorded outcome is retained indefinitely for the initial version and bound to the user, account, and action; conflicting reuse returns `409`. An old retry replays its historical outcome without changing the current state. The precise request-ID field/header is to be defined in the API contract.
+Concurrent disabling and reactivation requests must have a consistent order, with each request evaluated against the account state at that point. Retrying an old disable request after reactivation must not unintentionally disable the account again. Disable/reactivate requests require a client-generated lifecycle request ID, preserved on automatic retries. Its recorded outcome is retained indefinitely for the initial version and bound to the user, account, and action; conflicting reuse returns `409`. An old retry replays its historical outcome without changing the current state. Use the required UUID `Idempotency-Key` header on both actions; responses expose it as `lifecycleRequestId`. Lifecycle keys are globally unique across users, accounts and actions in a namespace separate from balance operation IDs. Conflicting reuse returns `409 LIFECYCLE_ID_CONFLICT`.
+
+### Account Metadata and Response Contract
+
+Creation accepts optional `displayName` (0–100 Unicode characters) and `description` (0–1,000), defaulting to empty strings. PATCH requires at least one of these fields; omitted fields remain unchanged, and empty strings clear them. Reject null, NUL, malformed Unicode, unknown/duplicate fields and incorrect types. Preserve whitespace and Unicode without normalization. Disabled accounts may have their metadata edited. Metadata updates cannot change identity, owner, balance or lifecycle status.
+
+Account responses contain `accountNumber`, `userId`, `displayName`, `description`, integer-cent `balance`, `status` (`active` or `disabled`) and UTC `createdAt`. Account numbers are opaque, preserve leading zeros and are never recycled. Creation returns `201` with a `Location` header; reads and metadata updates return `200`. Creation is not idempotent in this version: reject an `Idempotency-Key` header there, and do not automatically retry ambiguous creation responses. Metadata updates use the last committed write for each supplied field.
+
+### Account and History Pagination
+
+Both lists use opaque cursor pagination with `limit` default 50, minimum 1 and maximum 100. Return `{items, nextCursor}`; null nextCursor ends the list. Account lists include active and disabled owned accounts, ordered by `(createdAt, accountNumber)` descending. Transaction history includes successful balance changes only, including closure withdrawals, ordered by `(createdAt, transactionId)` descending. Pending and declined operations are available through the operation API. No status filter or individual transaction lookup is introduced in T03.
+
+Cursors must resist tampering and are bound to the owner, collection and account where applicable. Invalid, mismatched or expired cursors return `400 INVALID_CURSOR`. Page size may change between pages. Reject duplicate or unknown query parameters and invalid limits. These lists are not snapshots across requests: concurrent inserts may require restarting pagination, while mutable fields reflect each read. Missing/inaccessible target accounts share `404 NOT_FOUND`; an empty owned collection returns `200` with an empty list.
+
+### Lifecycle Responses and Historical Replay
+
+Disable/reactivate require exactly one `Idempotency-Key` header and no request body. Authenticate and check target ownership before looking up a key. A collision belonging to another user returns a generic conflict only after target authorization, without exposing any stored payload. Malformed, unauthorized, inaccessible and conflicting requests reserve no new lifecycle key. Successful no-ops do reserve their key and retain their outcome indefinitely.
+
+Lifecycle responses return `200` with `lifecycleRequestId`, `action`, an `account` snapshot and `closureWithdrawal` (null, or the original operationId, transactionId, negative amount and balanceAfter zero). Historical replays return that snapshot without changing current state; clients use GET to refresh current state. A new-key close while disabled reuses the current closure's withdrawal IDs without another withdrawal. A new close after reactivation is a new closure cycle. Older snapshots never change after metadata edits or later lifecycle actions.
+
+Reactivation always returns closureWithdrawal null. Reactivating an already active account preserves its current balance, including a positive balance. Retrying an old reactivation after a later closure returns the historical active snapshot without reactivating again. Closure withdrawal, disabling and lifecycle-result recording commit atomically. The complete response shapes and examples are in `api/account.openapi.json`; detailed retry and cursor rules are in `docs/account-contract.md`.
 
 ## User Service
 
@@ -157,8 +177,8 @@ Authentication, token expiry/revocation, and user active status are checked at t
 
 ## Remaining Decisions
 
-- Precise lifecycle request-ID field/header and handling of nonaccepted disabled-account attempts.
-- Pagination and optional individual transaction lookup; operation lookup is required.
+- Handling of nonaccepted disabled-account balance-operation attempts (T04).
+- Optional individual transaction lookup is deferred; cursor pagination is confirmed and operation lookup is required.
 - Browser token handling and manual administration procedures; opaque tokens, no refresh and current-session logout are confirmed.
 - Overload admission limits and responses. Performance targets are deferred until expected traffic is established.
 

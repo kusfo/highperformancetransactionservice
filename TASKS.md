@@ -36,11 +36,13 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 ### T03 — Account and lifecycle contract
 
-- [ ] Complete
+- [x] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T02.
 **Deliver:** Specify metadata validation, pagination and lifecycle request-ID field/header, conflict/replay semantics and account responses.
 **Verify:** Validate OpenAPI examples for closure, repeated closure, reactivation and historical retries.
+
+**Validation (2026-11-11):** Confirmed metadata limits/clearing, cursor pagination, owner scope, separate global lifecycle UUID namespace via `Idempotency-Key`, historical response snapshots and non-idempotent creation. Added `api/account.openapi.json`, docs/account-contract.md and contract validation in `make check-all`/CI. OpenAPI structure and 43 examples passed, with negative metadata, pagination and lifecycle invariants and replay-consistency fixtures. Orchestration regression tests cover account-contract failure propagation and cleanup. Full Docker validation passed formatting/vet, all five builds, unit/race tests and PostgreSQL integration; no fixture databases remained and cleanup exited 0. These contract fixtures do not prove runtime atomicity or ordering; account endpoints and persistence remain later tasks.
 
 ### T04 — Async operation contract
 

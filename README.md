@@ -124,3 +124,8 @@ Session persistence, token format and lifecycle integration requirements are
 documented in [sessions](docs/sessions.md). Login is implemented; see [login](docs/login.md). Protected-route middleware is available; see [authentication](docs/authentication.md). Logout remains a later task.
 
 Owner profile and password updates are documented in [profile updates](docs/profile.md).
+
+The confirmed Account API and lifecycle retry contract are documented in
+[account contract](docs/account-contract.md) and [OpenAPI](api/account.openapi.json).
+`make check-all` validates both the user/session and account contracts. Account
+endpoints remain future implementation work.

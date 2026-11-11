@@ -1,0 +1,1296 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Account and Lifecycle API",
+    "version": "0.1.0",
+    "description": "Confirmed T03 account and lifecycle contract. Runtime implementation follows in later tasks."
+  },
+  "servers": [
+    {
+      "url": "https://localhost"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/accounts": {
+      "post": {
+        "operationId": "createAccount",
+        "responses": {
+          "201": {
+            "description": "New active account, zero balance.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                },
+                "examples": {
+                  "created": {
+                    "value": {
+                      "accountNumber": "0000123456",
+                      "userId": "550e8400-e29b-41d4-a716-446655440000",
+                      "displayName": "Daily spending",
+                      "description": "Example account",
+                      "balance": 0,
+                      "status": "active",
+                      "createdAt": "2026-11-11T10:00:00Z"
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Relative URL /accounts/{accountNumber}"
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "error": {
+                    "value": {
+                      "code": "INVALID_REQUEST",
+                      "message": "Request rejected."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "error": {
+                    "value": {
+                      "code": "UNAUTHORIZED",
+                      "message": "Request rejected."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountCreate"
+              },
+              "examples": {
+                "empty": {
+                  "value": {}
+                },
+                "metadata": {
+                  "value": {
+                    "displayName": "Daily spending",
+                    "description": "Example account"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Confirmed: no create idempotency; an ambiguous retry can create another account. Reject Idempotency-Key rather than implying replay support."
+      },
+      "get": {
+        "operationId": "listAccounts",
+        "responses": {
+          "200": {
+            "description": "Own active and disabled accounts; newest-created first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountPage"
+                },
+                "examples": {
+                  "page": {
+                    "value": {
+                      "items": [
+                        {
+                          "accountNumber": "0000123457",
+                          "userId": "550e8400-e29b-41d4-a716-446655440000",
+                          "displayName": "Daily spending",
+                          "description": "Example account",
+                          "balance": 0,
+                          "status": "disabled",
+                          "createdAt": "2026-11-11T10:00:00Z"
+                        },
+                        {
+                          "accountNumber": "0000123456",
+                          "userId": "550e8400-e29b-41d4-a716-446655440000",
+                          "displayName": "Daily spending",
+                          "description": "Example account",
+                          "balance": 0,
+                          "status": "active",
+                          "createdAt": "2026-11-11T10:00:00Z"
+                        }
+                      ],
+                      "nextCursor": null
+                    }
+                  },
+                  "empty": {
+                    "value": {
+                      "items": [],
+                      "nextCursor": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "error": {
+                    "value": {
+                      "code": "INVALID_REQUEST",
+                      "message": "Request rejected."
+                    }
+                  },
+                  "cursor": {
+                    "value": {
+                      "code": "INVALID_CURSOR",
+                      "message": "Invalid cursor."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "error": {
+                    "value": {
+                      "code": "UNAUTHORIZED",
+                      "message": "Request rejected."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Opaque cursor, bound to authenticated owner, collection and account where applicable. Invalid, mismatched or expired cursor returns 400 INVALID_CURSOR."
+          }
+        ]
+      }
+    },
+    "/accounts/{accountNumber}": {
+      "parameters": [
+        {
+          "name": "accountNumber",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/AccountNumber"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "readAccount",
+        "responses": {
+          "200": {
+            "description": "Current account state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                },
+                "examples": {
+                  "active": {
+                    "value": {
+                      "accountNumber": "0000123456",
+                      "userId": "550e8400-e29b-41d4-a716-446655440000",
+                      "displayName": "Daily spending",
+                      "description": "Example account",
+                      "balance": 0,
+                      "status": "active",
+                      "createdAt": "2026-11-11T10:00:00Z"
+                    }
+                  },
+                  "disabled": {
+                    "value": {
+                      "accountNumber": "0000123456",
+                      "userId": "550e8400-e29b-41d4-a716-446655440000",
+                      "displayName": "Daily spending",
+                      "description": "Example account",
+                      "balance": 0,
+                      "status": "disabled",
+                      "createdAt": "2026-11-11T10:00:00Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "error": {
+                    "value": {
+                      "code": "UNAUTHORIZED",
+                      "message": "Request rejected."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "error": {
+                    "value": {
+                      "code": "NOT_FOUND",
+                      "message": "Resource not found."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateAccount",
+        "responses": {
+          "200": {
+            "description": "Current account with updated metadata.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                },
+                "examples": {
+                  "updated": {
+                    "value": {
+                      "accountNumber": "0000123456",
+                      "userId": "550e8400-e29b-41d4-a716-446655440000",
+                      "displayName": "Renamed",
+                      "description": "Example account",
+                      "balance": 0,
+                      "status": "active",
+                      "createdAt": "2026-11-11T10:00:00Z"
+                    }
+                  },
+                  "disabled": {
+                    "value": {
+                      "accountNumber": "0000123456",
+                      "userId": "550e8400-e29b-41d4-a716-446655440000",
+                      "displayName": "Daily spending",
+                      "description": "Example account",
+                      "balance": 0,
+                      "status": "disabled",
+                      "createdAt": "2026-11-11T10:00:00Z"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "error": {
+                    "value": {
+                      "code": "INVALID_REQUEST",
+                      "message": "Request rejected."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "error": {
+                    "value": {
+                      "code": "UNAUTHORIZED",
+                      "message": "Request rejected."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "error": {
+                    "value": {
+                      "code": "NOT_FOUND",
+                      "message": "Resource not found."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountUpdate"
+              },
+              "examples": {
+                "rename": {
+                  "value": {
+                    "displayName": "Renamed"
+                  }
+                },
+                "clear": {
+                  "value": {
+                    "displayName": "",
+                    "description": ""
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "disableAccount",
+        "responses": {
+          "200": {
+            "description": "Recorded outcome snapshot, not necessarily current state. Closure and withdrawal commit atomically.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LifecycleResult"
+                },
+                "examples": {
+                  "positiveBalanceClosure": {
+                    "value": {
+                      "lifecycleRequestId": "550e8400-e29b-41d4-a716-446655440003",
+                      "action": "disable",
+                      "account": {
+                        "accountNumber": "0000123456",
+                        "userId": "550e8400-e29b-41d4-a716-446655440000",
+                        "displayName": "Daily spending",
+                        "description": "Example account",
+                        "balance": 0,
+                        "status": "disabled",
+                        "createdAt": "2026-11-11T10:00:00Z"
+                      },
+                      "closureWithdrawal": {
+                        "operationId": "550e8400-e29b-41d4-a716-446655440001",
+                        "transactionId": "550e8400-e29b-41d4-a716-446655440002",
+                        "amount": -250,
+                        "balanceAfter": 0
+                      }
+                    }
+                  },
+                  "zeroBalanceClosure": {
+                    "value": {
+                      "lifecycleRequestId": "550e8400-e29b-41d4-a716-446655440004",
+                      "action": "disable",
+                      "account": {
+                        "accountNumber": "0000123456",
+                        "userId": "550e8400-e29b-41d4-a716-446655440000",
+                        "displayName": "Daily spending",
+                        "description": "Example account",
+                        "balance": 0,
+                        "status": "disabled",
+                        "createdAt": "2026-11-11T10:00:00Z"
+                      },
+                      "closureWithdrawal": null
+                    }
+                  },
+                  "identicalRetry": {
+                    "value": {
+                      "lifecycleRequestId": "550e8400-e29b-41d4-a716-446655440003",
+                      "action": "disable",
+                      "account": {
+                        "accountNumber": "0000123456",
+                        "userId": "550e8400-e29b-41d4-a716-446655440000",
+                        "displayName": "Daily spending",
+                        "description": "Example account",
+                        "balance": 0,
+                        "status": "disabled",
+                        "createdAt": "2026-11-11T10:00:00Z"
+                      },
+                      "closureWithdrawal": {
+                        "operationId": "550e8400-e29b-41d4-a716-446655440001",
+                        "transactionId": "550e8400-e29b-41d4-a716-446655440002",
+                        "amount": -250,
+                        "balanceAfter": 0
+                      }
+                    }
+                  },
+                  "newKeyWhileDisabled": {
+                    "value": {
+                      "lifecycleRequestId": "550e8400-e29b-41d4-a716-446655440006",
+                      "action": "disable",
+                      "account": {
+                        "accountNumber": "0000123456",
+                        "userId": "550e8400-e29b-41d4-a716-446655440000",
+                        "displayName": "Daily spending",
+                        "description": "Example account",
+                        "balance": 0,
+                        "status": "disabled",
+                        "createdAt": "2026-11-11T10:00:00Z"
+                      },
+                      "closureWithdrawal": {
+                        "operationId": "550e8400-e29b-41d4-a716-446655440001",
+                        "transactionId": "550e8400-e29b-41d4-a716-446655440002",
+                        "amount": -250,
+                        "balanceAfter": 0
+                      }
+                    }
+                  },
+                  "historicalRetryAfterReactivation": {
+                    "value": {
+                      "lifecycleRequestId": "550e8400-e29b-41d4-a716-446655440003",
+                      "action": "disable",
+                      "account": {
+                        "accountNumber": "0000123456",
+                        "userId": "550e8400-e29b-41d4-a716-446655440000",
+                        "displayName": "Daily spending",
+                        "description": "Example account",
+                        "balance": 0,
+                        "status": "disabled",
+                        "createdAt": "2026-11-11T10:00:00Z"
+                      },
+                      "closureWithdrawal": {
+                        "operationId": "550e8400-e29b-41d4-a716-446655440001",
+                        "transactionId": "550e8400-e29b-41d4-a716-446655440002",
+                        "amount": -250,
+                        "balanceAfter": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "error": {
+                    "value": {
+                      "code": "INVALID_REQUEST",
+                      "message": "Request rejected."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "error": {
+                    "value": {
+                      "code": "UNAUTHORIZED",
+                      "message": "Request rejected."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "error": {
+                    "value": {
+                      "code": "NOT_FOUND",
+                      "message": "Resource not found."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "LIFECYCLE_ID_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "error": {
+                    "value": {
+                      "code": "LIFECYCLE_ID_CONFLICT",
+                      "message": "Lifecycle request ID conflicts with an earlier request."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Confirmed: exactly one UUID header; separate lifecycle namespace, globally unique across users/accounts/actions. Reuse only for retrying the same action."
+          }
+        ],
+        "description": "No request body. A nonempty body is invalid. All successful requests, including no-ops, reserve their key and retain their result indefinitely."
+      }
+    },
+    "/accounts/{accountNumber}/reactivation": {
+      "parameters": [
+        {
+          "name": "accountNumber",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/AccountNumber"
+          }
+        }
+      ],
+      "post": {
+        "operationId": "reactivateAccount",
+        "responses": {
+          "200": {
+            "description": "Recorded active snapshot; no balance mutation or new transaction.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LifecycleResult"
+                },
+                "examples": {
+                  "reactivated": {
+                    "value": {
+                      "lifecycleRequestId": "550e8400-e29b-41d4-a716-446655440005",
+                      "action": "reactivate",
+                      "account": {
+                        "accountNumber": "0000123456",
+                        "userId": "550e8400-e29b-41d4-a716-446655440000",
+                        "displayName": "Daily spending",
+                        "description": "Example account",
+                        "balance": 0,
+                        "status": "active",
+                        "createdAt": "2026-11-11T10:00:00Z"
+                      },
+                      "closureWithdrawal": null
+                    }
+                  },
+                  "alreadyActiveWithFunds": {
+                    "value": {
+                      "lifecycleRequestId": "550e8400-e29b-41d4-a716-446655440005",
+                      "action": "reactivate",
+                      "account": {
+                        "accountNumber": "0000123456",
+                        "userId": "550e8400-e29b-41d4-a716-446655440000",
+                        "displayName": "Daily spending",
+                        "description": "Example account",
+                        "balance": 125,
+                        "status": "active",
+                        "createdAt": "2026-11-11T10:00:00Z"
+                      },
+                      "closureWithdrawal": null
+                    }
+                  },
+                  "historicalRetryAfterClosure": {
+                    "value": {
+                      "lifecycleRequestId": "550e8400-e29b-41d4-a716-446655440005",
+                      "action": "reactivate",
+                      "account": {
+                        "accountNumber": "0000123456",
+                        "userId": "550e8400-e29b-41d4-a716-446655440000",
+                        "displayName": "Daily spending",
+                        "description": "Example account",
+                        "balance": 0,
+                        "status": "active",
+                        "createdAt": "2026-11-11T10:00:00Z"
+                      },
+                      "closureWithdrawal": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "error": {
+                    "value": {
+                      "code": "INVALID_REQUEST",
+                      "message": "Request rejected."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "error": {
+                    "value": {
+                      "code": "UNAUTHORIZED",
+                      "message": "Request rejected."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "error": {
+                    "value": {
+                      "code": "NOT_FOUND",
+                      "message": "Resource not found."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "LIFECYCLE_ID_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "error": {
+                    "value": {
+                      "code": "LIFECYCLE_ID_CONFLICT",
+                      "message": "Lifecycle request ID conflicts with an earlier request."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Confirmed: exactly one UUID header; separate lifecycle namespace, globally unique across users/accounts/actions. Reuse only for retrying the same action."
+          }
+        ],
+        "description": "No request body. A nonempty body is invalid. Reactivation of an already active account preserves its existing balance."
+      }
+    },
+    "/accounts/{accountNumber}/transactions": {
+      "parameters": [
+        {
+          "name": "accountNumber",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "$ref": "#/components/schemas/AccountNumber"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "listAccountTransactions",
+        "responses": {
+          "200": {
+            "description": "Successful balance changes only, including closure withdrawals. Available after disabling.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionPage"
+                },
+                "examples": {
+                  "closureHistory": {
+                    "value": {
+                      "items": [
+                        {
+                          "operationId": "550e8400-e29b-41d4-a716-446655440001",
+                          "transactionId": "550e8400-e29b-41d4-a716-446655440002",
+                          "amount": -250,
+                          "balanceAfter": 0,
+                          "accountNumber": "0000123456",
+                          "createdAt": "2026-11-11T11:00:00Z",
+                          "source": "closure"
+                        }
+                      ],
+                      "nextCursor": null
+                    }
+                  },
+                  "empty": {
+                    "value": {
+                      "items": [],
+                      "nextCursor": null
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "INVALID_REQUEST",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "error": {
+                    "value": {
+                      "code": "INVALID_REQUEST",
+                      "message": "Request rejected."
+                    }
+                  },
+                  "cursor": {
+                    "value": {
+                      "code": "INVALID_CURSOR",
+                      "message": "Invalid cursor."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "error": {
+                    "value": {
+                      "code": "UNAUTHORIZED",
+                      "message": "Request rejected."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "examples": {
+                  "error": {
+                    "value": {
+                      "code": "NOT_FOUND",
+                      "message": "Resource not found."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Opaque cursor, bound to authenticated owner, collection and account where applicable. Invalid, mismatched or expired cursor returns 400 INVALID_CURSOR."
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "AccountNumber": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Opaque service-assigned account identifier. Preserve leading zeros; URL-encode as a path segment. Never recycled."
+      },
+      "AccountCreate": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 100,
+            "pattern": "^[^\u0000]*$"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 1000,
+            "pattern": "^[^\u0000]*$"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "AccountUpdate": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 100,
+            "pattern": "^[^\u0000]*$"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 1000,
+            "pattern": "^[^\u0000]*$"
+          }
+        },
+        "required": [],
+        "additionalProperties": false,
+        "minProperties": 1
+      },
+      "Account": {
+        "type": "object",
+        "properties": {
+          "accountNumber": {
+            "$ref": "#/components/schemas/AccountNumber"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 100,
+            "pattern": "^[^\u0000]*$"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 0,
+            "maxLength": 1000,
+            "pattern": "^[^\u0000]*$"
+          },
+          "balance": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "disabled"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "accountNumber",
+          "userId",
+          "displayName",
+          "description",
+          "balance",
+          "status",
+          "createdAt"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "disabled"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "balance": {
+                  "const": 0
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ClosureWithdrawal": {
+        "type": "object",
+        "properties": {
+          "operationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "transactionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "integer",
+            "minimum": -2147483647,
+            "maximum": -1
+          },
+          "balanceAfter": {
+            "const": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "operationId",
+          "transactionId",
+          "amount",
+          "balanceAfter"
+        ],
+        "additionalProperties": false
+      },
+      "LifecycleResult": {
+        "type": "object",
+        "properties": {
+          "lifecycleRequestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "disable",
+              "reactivate"
+            ]
+          },
+          "account": {
+            "$ref": "#/components/schemas/Account"
+          },
+          "closureWithdrawal": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ClosureWithdrawal"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "lifecycleRequestId",
+          "action",
+          "account",
+          "closureWithdrawal"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "action": {
+                  "const": "disable"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "account": {
+                  "properties": {
+                    "status": {
+                      "const": "disabled"
+                    },
+                    "balance": {
+                      "const": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "action": {
+                  "const": "reactivate"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "account": {
+                  "properties": {
+                    "status": {
+                      "const": "active"
+                    }
+                  }
+                },
+                "closureWithdrawal": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Transaction": {
+        "type": "object",
+        "properties": {
+          "transactionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "operationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountNumber": {
+            "$ref": "#/components/schemas/AccountNumber"
+          },
+          "amount": {
+            "type": "integer",
+            "minimum": -2147483647,
+            "maximum": 2147483647,
+            "not": {
+              "const": 0
+            }
+          },
+          "balanceAfter": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "user",
+              "closure"
+            ]
+          }
+        },
+        "required": [
+          "transactionId",
+          "operationId",
+          "accountNumber",
+          "amount",
+          "balanceAfter",
+          "createdAt",
+          "source"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "source": {
+                  "const": "closure"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "amount": {
+                  "maximum": -1
+                },
+                "balanceAfter": {
+                  "const": 0
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "AccountPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Account"
+            },
+            "maxItems": 100
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false
+      },
+      "TransactionPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Transaction"
+            },
+            "maxItems": 100
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}
