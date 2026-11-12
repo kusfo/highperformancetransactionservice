@@ -179,7 +179,7 @@ Authentication, token expiry/revocation, and user active status are checked at t
 
 - Financial persistence lock order, acceptance sequencing and closure-generation design (T05).
 - Optional individual transaction lookup is deferred; cursor pagination is confirmed and operation lookup is required.
-- Browser token handling and manual administration procedures; opaque tokens, no refresh and current-session logout are confirmed.
+- Browser token handling; opaque tokens, no refresh and current-session logout are confirmed. Manual administration procedures are documented in [identity administration](docs/identity-administration.md).
 - Exact admission limits and retry/backoff tuning (T32). Overload response semantics are confirmed; performance targets remain deferred.
 
 ## Asynchronous Operation Contract

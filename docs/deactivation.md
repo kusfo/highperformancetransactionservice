@@ -22,7 +22,7 @@ Requests authenticated before deactivation may both complete with `204`.
 Subsequent retries return `401` because the caller's session is revoked. A lost
 success response therefore cannot be replayed using that token. Manual
 re-enablement does not revive old sessions; the user must log in again.
-Operator tooling remains T16.
+See [identity administration](identity-administration.md) for operator tooling.
 
 ## Retained data and validation
 

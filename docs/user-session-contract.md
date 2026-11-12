@@ -17,7 +17,7 @@ Unique emails remain reserved for inactive users. Registration assigns UUID user
 
 ## Manual Administration Contract
 
-T16 will provide operator-only procedures for revoking a session or re-enabling a user without exposing credentials. Revocation is durable and affects subsequent requests; it does not undo accepted work. No superuser routes are introduced.
+T16 provides [operator-only procedures](identity-administration.md) for revoking a session or re-enabling a user without exposing credentials. Revocation is durable and affects subsequent requests; it does not undo accepted work. No superuser routes are introduced.
 
 ## Contract Artifact and Validation
 

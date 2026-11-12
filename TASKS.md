@@ -172,11 +172,13 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 ### T16 — Manual revocation and user re-enablement
 
-- [ ] Complete
+- [x] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T02, T06, T08, T11, T12, T15.
 **Deliver:** Provide documented operator-only commands/procedures without superuser APIs/UI.
 **Verify:** Fixture tests show revocation persists and re-enabled users can log in; commands do not print secrets.
+
+**Validation (2026-11-12):** Added `identity-admin` with `revoke-session` (token via bounded stdin only), `revoke-user-sessions` and `enable-user`. Operator access uses database credentials, with no new HTTP routes. User-wide revocation and re-enablement share login's user-row lock; re-enabling an inactive user atomically revokes residual sessions, while active-user retries preserve fresh sessions. Compiled CLI fixtures verified durable single/all-session revocation, repeat/no-op and missing-user outcomes, retained credentials, re-enabled login, old-token rejection, unaffected users and redacted output, including deferred commit failure. Observed lock waits proved revocation includes committed in-flight issuance and cancellation leaves state unchanged. `DOCKER_CONTEXT=desktop-linux make check-all` passed all three contracts, orchestration, formatting/vet, six builds, unit/race and PostgreSQL integration tests; cleanup exited 0 with no fixture databases remaining. Final strict newline parsing was additionally checked with formatting and race-enabled CLI unit tests. `git diff --check` passed. See [identity administration](docs/identity-administration.md). Dependencies are complete; queued-operation survival remains T38.
 
 
 ## Account and operation persistence

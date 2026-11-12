@@ -2,7 +2,7 @@
 
 ## Status and Goals
 
-Go is the selected implementation language. Deliver User, Account, and Transaction services plus a manual-testing frontend that can be tested locally and deployed to cloud infrastructure. `SPEC.md` remains the behavioral source of truth. Confirmed stack: Go, PostgreSQL, RabbitMQ, Docker images, Docker Compose locally, and Kubernetes deployment assets. Detailed implementation choices, including the shared Account/Transaction persistence design, follow the recommendations below. Identity/runtime implementation is complete through T15, with CI and real PostgreSQL validation. T03/T04 contracts are confirmed. Account/Transaction endpoints, workers and deployment packaging remain future work; T05 selects their persistence design in [financial persistence](docs/financial-persistence.md).
+Go is the selected implementation language. Deliver User, Account, and Transaction services plus a manual-testing frontend that can be tested locally and deployed to cloud infrastructure. `SPEC.md` remains the behavioral source of truth. Confirmed stack: Go, PostgreSQL, RabbitMQ, Docker images, Docker Compose locally, and Kubernetes deployment assets. Detailed implementation choices, including the shared Account/Transaction persistence design, follow the recommendations below. Identity/runtime implementation is complete through T16, with CI and real PostgreSQL validation. T03/T04 contracts are confirmed. Account/Transaction endpoints, workers and deployment packaging remain future work; T05 selects their persistence design in [financial persistence](docs/financial-persistence.md).
 
 ## Deployment Strategy
 
@@ -125,7 +125,7 @@ Benchmark distributed-account and hot-account workloads separately, recording th
 ## Remaining Implementation Decisions
 
 - T03/T04 resolved lifecycle headers, pagination and unaccepted-operation identity. Individual transaction lookup remains deferred. T05 specifies financial persistence; later tasks must validate its real concurrency behavior.
-- Frontend framework, browser token/session handling, and manual revocation/re-enablement procedures. Use opaque tokens with stored hashes, no refresh, current-session logout, and permanent session revocation on password change/deactivation.
+- Frontend framework and browser token/session handling. Manual revocation/re-enablement procedures are implemented in [identity administration](docs/identity-administration.md). Use opaque tokens with stored hashes, no refresh, current-session logout, and permanent session revocation on password change/deactivation.
 - Overload thresholds, first cloud environment, and backup/recovery objectives.
 
 Performance targets will be refined once expected traffic is established. Build repeatable benchmarks and report measured baselines without claiming an unagreed throughput target. Task creation can proceed with these remaining details captured as contract/design tasks before their dependent implementation.

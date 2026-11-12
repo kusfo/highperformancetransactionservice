@@ -11,7 +11,7 @@ From the repository root:
 
 | Command | Purpose |
 | --- | --- |
-| `make build` | Build the three HTTP services, worker scaffold and migration CLI into `bin/`. |
+| `make build` | Build the three HTTP services, worker scaffold, migration CLI and identity administration CLI into `bin/`. |
 | `make fmt` | Apply Go's standard formatting. |
 | `make fmt-check` | Detect formatting changes; applies formatting and fails if files changed. |
 | `make test` | Run `go test ./...`. |
@@ -21,7 +21,7 @@ From the repository root:
 | `make clean` | Remove the generated binaries. |
 
 Build one process with `make bin/user` (or `bin/account`, `bin/transaction`,
-`bin/transaction-worker`, or `bin/migrate`). Run an HTTP service with `./bin/user`
+`bin/transaction-worker`, `bin/migrate`, or `bin/identity-admin`). Run an HTTP service with `./bin/user`
 (or `go run ./cmd/user`) after setting
 `HTTP_TLS_CERT_FILE` and `HTTP_TLS_KEY_FILE`. Account and Transaction use the
 same HTTP configuration; set different `HTTP_ADDR` ports to run them together.
@@ -139,3 +139,6 @@ The selected financial storage, lock order, ordered scheduling and closure-bound
 model are documented in [financial persistence](docs/financial-persistence.md).
 This is the T05 design; financial runtime implementation and its concurrency
 proofs remain in the dependent tasks.
+
+Operator-only session revocation and user re-enablement are documented in
+[identity administration](docs/identity-administration.md).

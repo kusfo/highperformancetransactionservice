@@ -1,5 +1,5 @@
 GO ?= go
-SERVICES := user account transaction transaction-worker migrate
+SERVICES := user account transaction transaction-worker migrate identity-admin
 BINARIES := $(addprefix bin/,$(SERVICES))
 GO_FILES := $(shell find cmd src -type f -name '*.go' 2>/dev/null)
 

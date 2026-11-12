@@ -35,18 +35,18 @@ current credential/active state, issue via a repository bound to that transactio
 and commit before publishing the token. Never send a token if commit fails.
 
 T14 password changes take the same user-row lock, replace the hash and call
-`RevokeAll` in that transaction; see [profile updates](profile.md). Future
-deactivation code must also lock the user row and revoke in its transaction. `users.SetActive` alone currently
+`RevokeAll` in that transaction; see [profile updates](profile.md). T15
+deactivation also locks the user row and revokes in its transaction. `users.SetActive` alone currently
 does not revoke sessions; it remains a low-level persistence method. Re-enabling
 a user must never clear revoked timestamps. Tests explicitly revoke before
 re-enablement and verify old sessions remain invalid. T12 tests observed login waits against direct database lifecycle updates.
 Password-change integration tests cover atomic rollback and concurrent changes.
-HTTP deactivation remains a later task.
+See [deactivation](deactivation.md) for the implemented HTTP flow.
 
 `Revoke` is idempotent for validly encoded tokens, including unknown and expired
 ones. It preserves an existing revocation timestamp. `RevokeAll` affects only the
 specified user's unrevoked sessions. These are trusted internal methods; future
-HTTP callers must enforce ownership. T16 will supply operator procedures.
+HTTP callers must enforce ownership. T16 supplies [operator procedures](identity-administration.md).
 No automatic session deletion or change to queued financial operations is added.
 
 ## Validation
