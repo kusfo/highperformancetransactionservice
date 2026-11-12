@@ -457,3 +457,11 @@ can we start working on T16? check if we're missing any dependency
 ## 110. Commit and Push T16
 
 Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?
+
+## 111. Start T17 and Check Dependencies
+
+can we start working on T17? check if we're missing any dependency
+
+## 112. Commit and Push T17
+
+Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?

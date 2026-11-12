@@ -1,7 +1,9 @@
 # T05 Financial Persistence and Concurrency Design
 
 Status: implementation design for the confirmed T03/T04 contracts. This document
-selects storage/locking rules; it does not implement financial tables or endpoints.
+selects storage/locking rules. T17 implements the account table/repository (see
+[account persistence](account-persistence.md)); remaining financial tables and
+endpoints are future tasks.
 SPEC.md and the OpenAPI contracts govern externally visible behavior.
 
 ## Ownership and consistency boundary

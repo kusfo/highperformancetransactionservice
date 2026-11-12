@@ -185,11 +185,13 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 ### T17 — Account schema and repository
 
-- [ ] Complete
+- [x] Complete
 
 **Depends on:** T03, T05, T06.
 **Deliver:** Add unique assigned numbers, single owner, bounded balance, metadata, status, sequence and lifecycle generation.
 **Verify:** Database tests enforce zero creation, balance bounds, uniqueness and immutable owner/number.
+
+**Validation (2026-11-12):** Added append-only `000003_accounts.sql` and `src/financial.Accounts` creation/owner-scoped lookup. Random opaque account numbers are unique and retained; database guards enforce initial zero/active state, immutable account identity/owner/creation time, no deletes and nondecreasing counters. Metadata validation preserves Unicode/whitespace and rejects NUL/invalid UTF-8. Tests cover multiple/concurrent accounts, owner isolation, disabled/leading-zero reads, creation rollback/cancellation, balance/sequence/generation constraints, safe errors and bounded collision retries. EXPLAIN over 10,000 rows verified normal index use for actual account lookup, owner ordering and ready-account discovery. `DOCKER_CONTEXT=desktop-linux make check-all` passed all contracts, orchestration, formatting/vet, six builds, unit/race and real PostgreSQL integration; cleanup exited 0 with no fixture databases remaining. Documentation links and `git diff --check` passed. See [account persistence](docs/account-persistence.md). No missing prerequisite; T17-A is now unblocked. T21 adds the latest-closure reference alongside its target table/FK; HTTP and financial lifecycle mutations remain later tasks.
 
 ### T17-A — Financial service database permissions
 
@@ -228,7 +230,7 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 - [ ] Complete
 
 **Depends on:** T04, T05, T17.
-**Deliver:** Add global operation/transaction IDs, immutable payload/outcomes, per-account sequence, outbox and lifecycle results.
+**Deliver:** Add global operation/transaction IDs, immutable payload/outcomes, per-account sequence, outbox and lifecycle results. Add closures and the account latest-closure reference with its foreign key together.
 **Verify:** Database tests verify uniqueness, required relationships and rollback; no automatic outcome expiry.
 
 ### T22 — Money validation component

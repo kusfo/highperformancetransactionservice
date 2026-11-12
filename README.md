@@ -142,3 +142,5 @@ proofs remain in the dependent tasks.
 
 Operator-only session revocation and user re-enablement are documented in
 [identity administration](docs/identity-administration.md).
+
+Account schema and repository behavior are documented in [account persistence](docs/account-persistence.md).

@@ -90,5 +90,6 @@ concurrent/repeated closure results, reactivation no-ops and historical replay
 examples. Schema checks validate shape and cross-field invariants; example
 relationships check documented replay consistency. These checks do not prove
 runtime atomicity, ordering or authorization. T05/T33–T38 own those proofs.
-Account schema/repositories/endpoints remain future tasks. T03 does not implement
+T17 implements the [account schema/repository](account-persistence.md); endpoints
+remain future tasks. T03 does not implement
 financial operations, broker behavior or overload policy.
