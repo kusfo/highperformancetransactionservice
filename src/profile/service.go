@@ -105,3 +105,32 @@ func storageError(ctx context.Context) error {
 	}
 	return users.ErrStorage
 }
+
+// Deactivate retains identity data and permanently revokes sessions atomically.
+// The UPDATE locks the same user row as login/password changes before touching
+// sessions. Repeated calls already admitted by authentication are harmless.
+func (s *Service) Deactivate(ctx context.Context, id string) error {
+	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
+	if err != nil {
+		return storageError(ctx)
+	}
+	defer func() {
+		cleanup, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = tx.Rollback(cleanup)
+	}()
+	result, err := tx.Exec(ctx, `UPDATE identity.users SET active=false WHERE user_id=$1`, postgres.UUIDKey(id))
+	if err != nil {
+		return storageError(ctx)
+	}
+	if result.RowsAffected() == 0 {
+		return users.ErrNotFound
+	}
+	if err = sessions.NewRepository(tx, nil).RevokeAll(ctx, id); err != nil {
+		return storageError(ctx)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return storageError(ctx)
+	}
+	return nil
+}

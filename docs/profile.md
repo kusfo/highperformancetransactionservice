@@ -19,7 +19,7 @@ A lost successful password-change response leaves the new password active and th
 
 Run `DOCKER_CONTEXT=desktop-linux make check-all`. Unit tests cover routing, ownership, input validation and error mapping. Real HTTPS/PostgreSQL tests check persisted profile values, immutable fields, credential isolation, session revocation, login with the new password and secret-free logs. Database tests inject a deferred commit failure and run concurrent password changes to verify rollback and serialization.
 
-User deactivation, logout and operator administration remain separate work.
+User deactivation is implemented alongside these routes; see [deactivation](deactivation.md). Logout and operator administration remain separate work.
 
 Validation strengthened (2026-11-11): successful PATCH responses are compared
 with independent database reads. Password-change tests observe the verification

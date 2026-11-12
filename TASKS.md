@@ -160,11 +160,15 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 ### T15 — User deactivation endpoint
 
-- [ ] Complete
+- [x] Complete
 
-**Depends on:** {deps}.
+**Depends on:** T02, T07, T08, T11, T12, T13.
 **Deliver:** Deactivate without deleting accounts or transaction history; reject subsequent authenticated requests.
 **Verify:** Repository/handler tests verify preserved records, repeated deactivation semantics and blocked new requests.
+
+**Validation (2026-11-12):** Implemented owner-only `DELETE /users/{userId}` in the User binary. A user-row-locked READ COMMITTED transaction marks the retained user inactive and permanently revokes all sessions; it shares login/password-change locking. HTTPS/PostgreSQL tests cover retained identity/credential/session data, reserved email, ownership, empty bodies, repeated-request 401, blocked new requests, unaffected other users and fresh login after re-enablement without reviving old tokens. Deferred commit failure rolls back both changes; observed lock-wait tests prove revocation of committed in-flight issuance and cancellation without mutation. `DOCKER_CONTEXT=desktop-linux make check-all` passed formatting/vet, all five builds, unit/race, contracts/orchestration and PostgreSQL integration tests; cleanup exited 0 with no fixture databases remaining. The subsequently updated user OpenAPI contract passed separately (23 examples). `git diff --check` passed. See [deactivation](docs/deactivation.md). No dependency is missing; end-to-end financial-history/accepted-queue preservation remains explicitly assigned to T38 once financial storage/workers exist.
+
+**Coverage follow-up (2026-11-12):** Replaced the sequential deactivation retry proxy with two real HTTPS DELETE requests synchronized after authentication/ownership and before persistence. Both must reach the barrier while the user remains active, then return empty `204` responses with `no-store`; retained-state, permanent revocation and subsequent `401` checks follow. `DOCKER_CONTEXT=desktop-linux make test-postgres` passed formatting/vet, unit tests, all five builds and race-enabled PostgreSQL integration; cleanup exited 0 with no remaining fixture databases.
 
 ### T16 — Manual revocation and user re-enablement
 

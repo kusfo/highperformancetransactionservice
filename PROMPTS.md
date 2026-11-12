@@ -433,3 +433,19 @@ Let's start with T05
 ## 104. Commit and Push T05
 
 Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?
+
+## 105. Start T15 and Check Dependencies
+
+can we start working on T15? check if we're missing any dependency
+
+## 106. Review T15 with a Parallel Reviewer
+
+Spun a parallel agent, reviewer, to review changes and came bak with an analysis
+
+## 107. Strengthen Concurrent Deactivation Coverage
+
+Let's implement the coverage improvement proposed by the reviewer agent
+
+## 108. Commit and Push T15
+
+Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?

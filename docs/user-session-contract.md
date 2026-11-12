@@ -26,3 +26,7 @@ T16 will provide operator-only procedures for revoking a session or re-enabling 
 Run reproducible checks in a disposable Python environment: `python -m pip install -r tests/contracts/requirements.txt`, then `python tests/contracts/validate_user_session.py`.
 
 Email schema validation distinguishes raw, normalizable ASCII request input from canonical lowercase response output. `tests/contracts/email_cases.json` is shared with Go repository tests to cover Unicode rejection, whitespace/case handling and normalized-length boundaries.
+
+## Deactivation implementation
+
+`DELETE /users/{userId}` accepts no body and atomically deactivates the owner and revokes all sessions. Later retries return `401`; concurrent requests already authenticated may both return `204`. See [deactivation](deactivation.md) for persistence, concurrency and validation details.

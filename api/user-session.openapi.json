@@ -277,8 +277,23 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Request body must be empty.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "code": "INVALID_REQUEST",
+                  "message": "Request body must be empty."
+                }
+              }
+            }
           }
-        }
+        },
+        "description": "Deactivate the authenticated owner and permanently revoke all existing sessions in one transaction. Send no request body. Retain identity and financial records. Later retries with the revoked token return 401; concurrent requests authenticated before deactivation may both return 204."
       }
     },
     "/users/{userId}/password": {

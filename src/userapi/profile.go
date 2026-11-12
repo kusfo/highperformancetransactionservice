@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strings"
 	"unicode/utf8"
@@ -27,6 +28,22 @@ func NewHandlerWithProfile(repository Creator, authenticator Authenticator, chec
 	h.protected = authn.Require(checker, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { h.serveProfile(w, r, editor) }))
 	return h
 }
+
+// Deactivator atomically disables the user and revokes existing sessions.
+type Deactivator interface {
+	Deactivate(context.Context, string) error
+}
+
+// NewHandlerWithLifecycle includes owner deactivation alongside profile routes.
+func NewHandlerWithLifecycle(repository Creator, authenticator Authenticator, checker authn.Checker, editor interface {
+	ProfileEditor
+	Deactivator
+}) *Handler {
+	h := NewHandlerWithProfile(repository, authenticator, checker, editor)
+	h.deactivator = editor
+	return h
+}
+
 func (h *Handler) serveProfile(w http.ResponseWriter, r *http.Request, editor ProfileEditor) {
 	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/users/"), "/")
 	password := len(parts) == 2 && parts[1] == "password"
@@ -34,7 +51,11 @@ func (h *Handler) serveProfile(w http.ResponseWriter, r *http.Request, editor Pr
 	if password {
 		method = "PUT"
 	}
-	if r.Method != method {
+	deactivate := len(parts) == 1 && r.Method == http.MethodDelete && h.deactivator != nil
+	if r.Method != method && !deactivate {
+		if !password && h.deactivator != nil {
+			method = "PATCH, DELETE"
+		}
 		w.Header().Set("Allow", method)
 		httpapi.WriteError(w, 405, "METHOD_NOT_ALLOWED", "Method not allowed.")
 		return
@@ -42,6 +63,28 @@ func (h *Handler) serveProfile(w http.ResponseWriter, r *http.Request, editor Pr
 	identity, ok := authn.FromContext(r.Context())
 	if !ok || parts[0] != identity.UserID {
 		httpapi.WriteError(w, 404, "NOT_FOUND", "Resource not found.")
+		return
+	}
+	if deactivate {
+		// No request body is defined; read at most one byte, including chunked input.
+		var body [1]byte
+		n, err := io.ReadFull(r.Body, body[:])
+		if n != 0 || err != io.EOF {
+			httpapi.WriteError(w, 400, "INVALID_REQUEST", "Request body must be empty.")
+			return
+		}
+		err = h.deactivator.Deactivate(r.Context(), identity.UserID)
+		switch {
+		case err == nil:
+			w.Header().Set("Cache-Control", "no-store")
+			w.WriteHeader(http.StatusNoContent)
+		case errors.Is(err, users.ErrNotFound):
+			httpapi.WriteError(w, 404, "NOT_FOUND", "Resource not found.")
+		case r.Context().Err() != nil:
+			cancelled(w)
+		default:
+			httpapi.WriteError(w, 500, "INTERNAL_ERROR", "An internal error occurred.")
+		}
 		return
 	}
 	input := exactStrings{allowed: []string{"displayName"}}

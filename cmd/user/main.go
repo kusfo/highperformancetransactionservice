@@ -1,4 +1,4 @@
-// Command user serves registration, login and profile updates over HTTPS.
+// Command user serves registration, login, profile updates and deactivation over HTTPS.
 package main
 
 import (
@@ -46,7 +46,7 @@ func run() error {
 	if err != nil {
 		return errors.New("database unavailable")
 	}
-	routes := userapi.NewHandlerWithProfile(users.NewRepository(pool), login.NewService(pool, nil), sessions.NewRepository(pool, nil), profile.NewService(pool))
+	routes := userapi.NewHandlerWithLifecycle(users.NewRepository(pool), login.NewService(pool, nil), sessions.NewRepository(pool, nil), profile.NewService(pool))
 	runtime, err := httpapi.New(cfg, routes, os.Stdout)
 	if err != nil {
 		return err

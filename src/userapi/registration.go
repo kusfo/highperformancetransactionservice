@@ -20,11 +20,12 @@ type Creator interface {
 }
 
 type Handler struct {
-	users     Creator
-	login     Authenticator
-	protected http.Handler
-	slots     chan struct{}
-	hash      func(string) (string, error)
+	users       Creator
+	login       Authenticator
+	protected   http.Handler
+	deactivator Deactivator
+	slots       chan struct{}
+	hash        func(string) (string, error)
 }
 
 // NewHandler bounds active registrations (including hashing and storage) to two
