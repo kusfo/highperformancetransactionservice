@@ -1,27 +1,22 @@
-// Command account runs the shared HTTP runtime; domain endpoints follow later.
+// Command account serves authenticated account creation over HTTPS.
 package main
 
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/kusfo/highperformancetransactionservice/src/accountapi"
+	"github.com/kusfo/highperformancetransactionservice/src/financial"
 	"github.com/kusfo/highperformancetransactionservice/src/httpapi"
 	"github.com/kusfo/highperformancetransactionservice/src/postgres"
+	"github.com/kusfo/highperformancetransactionservice/src/sessions"
 )
 
 func run() error {
 	cfg, err := httpapi.LoadConfig(os.Getenv)
-	if err != nil {
-		return err
-	}
-	routes := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		httpapi.WriteError(w, 404, "NOT_FOUND", "Resource not found.")
-	})
-	runtime, err := httpapi.New(cfg, routes, os.Stdout)
 	if err != nil {
 		return err
 	}
@@ -32,6 +27,11 @@ func run() error {
 		return err
 	}
 	defer pool.Close()
+	routes := accountapi.NewHandler(financial.NewAccounts(pool), sessions.NewRepository(pool, nil))
+	runtime, err := httpapi.New(cfg, routes, os.Stdout)
+	if err != nil {
+		return err
+	}
 	return runtime.Run(ctx)
 }
 

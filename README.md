@@ -28,8 +28,9 @@ same HTTP configuration; set different `HTTP_ADDR` ports to run them together.
 All HTTP services and the worker require `DATABASE_URL` with migrations and
 [service database roles](docs/database-roles.md) provisioned. Each process must use
 its own non-owner login; migration/superuser credentials are rejected.
-User implements registration, sessions, profile changes and deactivation; see [registration](docs/registration.md). Account/Transaction routes
-currently return JSON 404 errors. The worker
+User implements registration, sessions, profile changes and deactivation; see [registration](docs/registration.md).
+Account implements authenticated `POST /accounts`; see [account creation](docs/account-creation.md).
+Other Account routes and Transaction routes currently return JSON 404 errors. The worker
 still prints its scaffold message and exits. See [HTTP runtime settings](docs/http-runtime.md).
 `go test ./...` now includes isolated HTTP runtime tests.
 
@@ -131,7 +132,7 @@ User deactivation is documented in [deactivation](docs/deactivation.md).
 The confirmed Account API and lifecycle retry contract are documented in
 [account contract](docs/account-contract.md) and [OpenAPI](api/account.openapi.json).
 `make check-all` validates both the user/session and account contracts. Account
-endpoints remain future implementation work.
+creation is implemented; reads, lists, updates and lifecycle endpoints remain future work.
 
 The confirmed asynchronous submission/status contract is documented in
 [operation contract](docs/operation-contract.md) and [OpenAPI](api/operation.openapi.json).

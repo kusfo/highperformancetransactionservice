@@ -205,11 +205,13 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 ### T18 — Account create endpoint
 
-- [ ] Complete
+- [x] Complete
 
 **Depends on:** T17, T17-A, T13.
 **Deliver:** Assign account number/owner server-side and accept agreed metadata only.
 **Verify:** Test multiple accounts per user, zero initial balance and rejected balance/owner overrides.
+
+**Validation:** Added authenticated `POST /accounts`, wired into the Account binary using its financial HTTP runtime credentials. Reuses account persistence and strict shared JSON/Unicode validation; accepts optional metadata only and rejects duplicate/unknown fields, null, invalid types and any Idempotency-Key header. Returns 201 with Location and the public account representation. Unit tests cover metadata limits, overrides, authentication, error redaction and non-idempotent dispatch. HTTPS integration tests with real financial HTTP credentials verify multiple accounts for two users, unique numbers, ownership, zero balances and persisted metadata. `DOCKER_CONTEXT=desktop-linux make check-all` passed contracts, orchestration tests, formatting/vet, six builds, unit/race and PostgreSQL integration tests; cleanup exited 0 with no fixture databases remaining. `git diff --check` passed. See [account creation](docs/account-creation.md). Reads/listing remain T19.
 
 ### T19 — Account read and list endpoints
 

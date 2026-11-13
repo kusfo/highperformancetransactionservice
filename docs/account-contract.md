@@ -1,8 +1,8 @@
 # T03 Account and Lifecycle Contract
 
 Status: confirmed. Metadata, list and lifecycle choices were accepted during
-T03. `api/account.openapi.json` defines the contract; endpoints remain future
-implementation work.
+T03. `api/account.openapi.json` defines the contract. T18 implements
+[account creation](account-creation.md); other endpoints remain future work.
 
 ## Metadata and account responses
 
@@ -90,6 +90,6 @@ concurrent/repeated closure results, reactivation no-ops and historical replay
 examples. Schema checks validate shape and cross-field invariants; example
 relationships check documented replay consistency. These checks do not prove
 runtime atomicity, ordering or authorization. T05/T33–T38 own those proofs.
-T17 implements the [account schema/repository](account-persistence.md); endpoints
-remain future tasks. T03 does not implement
+T17 implements the [account schema/repository](account-persistence.md); T18 adds
+creation over HTTP. Other endpoints remain future tasks. T03 does not implement
 financial operations, broker behavior or overload policy.
