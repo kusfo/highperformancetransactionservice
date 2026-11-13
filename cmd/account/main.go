@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/kusfo/highperformancetransactionservice/src/httpapi"
+	"github.com/kusfo/highperformancetransactionservice/src/postgres"
 )
 
 func run() error {
@@ -26,6 +27,11 @@ func run() error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	pool, err := postgres.OpenRuntimePool(ctx, os.Getenv("DATABASE_URL"), postgres.FinancialHTTPRole)
+	if err != nil {
+		return err
+	}
+	defer pool.Close()
 	return runtime.Run(ctx)
 }
 

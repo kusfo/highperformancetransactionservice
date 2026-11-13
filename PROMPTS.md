@@ -465,3 +465,11 @@ can we start working on T17? check if we're missing any dependency
 ## 112. Commit and Push T17
 
 Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?
+
+## 113. Start T17-A
+
+can we start now with T17-A?
+
+## 114. Commit and Push T17-A
+
+Please, can you commit the changes, with a meaningful commit message, and push it to the remote repo?

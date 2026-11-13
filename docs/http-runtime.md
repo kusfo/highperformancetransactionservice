@@ -89,3 +89,11 @@ Validation (2026-11-03): `DOCKER_CONTEXT=desktop-linux make check-all` passed
 contract checks, formatting/vet, all five builds, unit/race tests and PostgreSQL
 integration. Unicode regression tests passed for the shared decoder and each
 affected user endpoint. No fixture databases remained; cleanup exited 0.
+
+## Runtime database credentials
+
+T17-A requires all service binaries to validate their own non-owner database login
+before startup. Account/Transaction still serve placeholder routes; the worker
+validates its connection before printing the scaffold message. See
+[database roles](database-roles.md) for provisioning and per-process credentials.
+Isolated HTTP runtime unit tests still require no database.

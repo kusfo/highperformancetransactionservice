@@ -25,8 +25,10 @@ Build one process with `make bin/user` (or `bin/account`, `bin/transaction`,
 (or `go run ./cmd/user`) after setting
 `HTTP_TLS_CERT_FILE` and `HTTP_TLS_KEY_FILE`. Account and Transaction use the
 same HTTP configuration; set different `HTTP_ADDR` ports to run them together.
-User implements `POST /users` and `POST /sessions` and also requires `DATABASE_URL` with migrations
-applied; see [registration](docs/registration.md). Account/Transaction routes
+All HTTP services and the worker require `DATABASE_URL` with migrations and
+[service database roles](docs/database-roles.md) provisioned. Each process must use
+its own non-owner login; migration/superuser credentials are rejected.
+User implements registration, sessions, profile changes and deactivation; see [registration](docs/registration.md). Account/Transaction routes
 currently return JSON 404 errors. The worker
 still prints its scaffold message and exits. See [HTTP runtime settings](docs/http-runtime.md).
 `go test ./...` now includes isolated HTTP runtime tests.
@@ -38,7 +40,7 @@ under `deploy/` as their tasks are implemented. `SPEC.md`, `PLAN.md`, and
 
 To validate a clean checkout, run `make check`, then run the HTTP services with
 configured TLS files and the worker scaffold. Go-only checks need no database;
-running the User service requires PostgreSQL and applied migrations.
+running any service requires PostgreSQL, applied migrations and provisioned runtime roles.
 
 
 ## PostgreSQL migrations and integration tests
@@ -53,7 +55,7 @@ to this disposable network; do not use it for a persistent or production server.
 
 With Go installed and an existing **disposable** PostgreSQL server, set
 `TEST_DATABASE_URL` in your environment and run `make test-integration`. Its role
-must be allowed to create/drop databases. Each test gets a random database and
+must be allowed to create/drop databases and roles. Each test gets a random database and
 registers cleanup immediately; test fixtures never use application databases.
 Without the integration build tag, normal `make test` does not need PostgreSQL.
 

@@ -27,7 +27,7 @@ receive column-level SELECT on identity.sessions (token_hash, user_id, issued_at
 expires_at, revoked_at) and identity.users (user_id, active), matching the existing
 session checker. Do not grant table-wide SELECT. Deny password-hash
 access and identity writes. Workers need no identity access. Role/grant enforcement
-and its negative tests must precede deploying financial services.
+and its negative tests are implemented by T17-A; see [database roles](database-roles.md). Future table grants must extend that tested matrix before deploying their features.
 
 Account owners are immutable UUIDs. Do not introduce a cross-schema user foreign
 key solely for authentication: a trusted creation identity supplies existence,

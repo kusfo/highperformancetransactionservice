@@ -195,11 +195,13 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 
 ### T17-A — Financial service database permissions
 
-- [ ] Complete
+- [x] Complete
 
 **Depends on:** T11, T17.
 **Deliver:** Separate identity, financial HTTP, worker and relay roles; grant financial HTTP only the identity columns required by session checks and no credential access/identity writes. Keep workers independent of identity privileges. Document credential configuration and migration-owner separation.
 **Verify:** Real-role tests permit authentication but reject password_hash reads and identity writes; worker processing requires no identity permissions. Deployment cannot reuse the migration superuser as an application role.
+
+**Validation (2026-11-13):** Added explicit, transactional `scripts/database-roles.sql` provisioning for NOLOGIN identity, financial HTTP, worker and relay capabilities. Financial HTTP receives only authentication-column identity reads; workers/relay receive no identity schema access. Existing table/column/PUBLIC grants are reset before explicit grants, with no blanket future-table grants. Shared `postgres.OpenRuntimePool` checks every new connection and rejects elevated/owner credentials, extra memberships and role-switch disguises. All three HTTP binaries and the worker scaffold enforce their capability at startup. Real LOGIN fixtures verified identity registration/login, financial bearer auth/account creation, worker account lock/write, forbidden credential/profile reads and identity/destructive/DDL writes, relay isolation, provisioning reruns and startup rejection. `DOCKER_CONTEXT=desktop-linux make check-all` passed contracts, orchestration, formatting/vet, six builds, unit/race and PostgreSQL integration; cleanup exited 0 with no fixture databases remaining. See [database roles](docs/database-roles.md). T18 is unblocked. T21 extends grants for future operation/history/closure/outbox tables; T26/T30 prove full worker processing under its role, and T29 wires the future relay through the shared guard.
 
 ### T18 — Account create endpoint
 
@@ -230,7 +232,7 @@ Begin T01–T05; T01 supports the environment/runtime work while contract decisi
 - [ ] Complete
 
 **Depends on:** T04, T05, T17.
-**Deliver:** Add global operation/transaction IDs, immutable payload/outcomes, per-account sequence, outbox and lifecycle results. Add closures and the account latest-closure reference with its foreign key together.
+**Deliver:** Add global operation/transaction IDs, immutable payload/outcomes, per-account sequence, outbox and lifecycle results. Add closures and the account latest-closure reference with its foreign key together. Extend `scripts/database-roles.sql` and real-role tests for every new table; avoid default blanket grants.
 **Verify:** Database tests verify uniqueness, required relationships and rollback; no automatic outcome expiry.
 
 ### T22 — Money validation component

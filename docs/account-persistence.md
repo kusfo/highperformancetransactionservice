@@ -47,7 +47,7 @@ zero balance while disabled, positive generations and
 Go state and balances use int64. Updates cannot change identity, number, owner or
 creation time, or decrease counters. DELETE is rejected: rows and numbers are
 retained. Metadata remains mutable on disabled accounts. Application roles must
-also lack DELETE/TRUNCATE/DDL privileges; T17-A defines role enforcement.
+also lack DELETE/TRUNCATE/DDL privileges; T17-A implements [role enforcement](database-roles.md).
 
 These constraints do not implement balance processing or prove multirow financial
 consistency. T21 adds operations, history, outbox, closures and the latest-closure

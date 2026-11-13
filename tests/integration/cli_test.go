@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/kusfo/highperformancetransactionservice/src/postgres"
 	"github.com/kusfo/highperformancetransactionservice/tests/testdb"
 )
 
@@ -237,22 +238,28 @@ func TestServiceBinaries(t *testing.T) {
 			defer cancel()
 			cmd := exec.CommandContext(ctx, path)
 			env := map[string]string{"HTTP_ADDR": addr, "HTTP_TLS_CERT_FILE": cert, "HTTP_TLS_KEY_FILE": key}
-			if name == "user" {
-				conn, _, _ := userFixture(t)
-				databaseURL, err := url.Parse(os.Getenv("TEST_DATABASE_URL"))
-				if err != nil {
-					t.Fatal(err)
-				}
-				databaseURL.Path = "/" + conn.Config().Database
-				databaseURL.RawPath = ""
-				env["DATABASE_URL"] = databaseURL.String()
-				for _, badURL := range []string{"", "postgres://user:secret-token@invalid.invalid/db?bad=%"} {
-					badEnv := map[string]string{"HTTP_TLS_CERT_FILE": cert, "HTTP_TLS_KEY_FILE": key, "DATABASE_URL": badURL}
-					if output, err := runCLI(t, path, badEnv); err == nil || strings.Contains(output, "secret-token") {
-						t.Fatal("database configuration was not safely rejected")
-					}
+
+			conn, _, _ := userFixture(t)
+			logins := provisionRuntimeRoles(t, conn)
+			databaseURL, err := url.Parse(os.Getenv("TEST_DATABASE_URL"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			databaseURL.Path = "/" + conn.Config().Database
+			databaseURL.RawPath = ""
+			for _, badURL := range []string{"", "postgres://user:secret-token@invalid.invalid/db?bad=%", databaseURL.String()} {
+				badEnv := map[string]string{"HTTP_TLS_CERT_FILE": cert, "HTTP_TLS_KEY_FILE": key, "DATABASE_URL": badURL}
+				if output, err := runCLI(t, path, badEnv); err == nil || strings.Contains(output, "secret-token") {
+					t.Fatal("unsafe database configuration accepted/disclosed")
 				}
 			}
+			role := postgres.FinancialHTTPRole
+			if name == "user" {
+				role = postgres.IdentityRole
+			}
+			databaseURL.User = url.User(logins[role])
+			env["DATABASE_URL"] = databaseURL.String()
+
 			cmd.Env = cliEnv(env)
 			if err := cmd.Start(); err != nil {
 				t.Fatal(err)

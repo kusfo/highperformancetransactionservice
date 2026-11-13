@@ -3,16 +3,14 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kusfo/highperformancetransactionservice/src/httpapi"
 	"github.com/kusfo/highperformancetransactionservice/src/login"
+	"github.com/kusfo/highperformancetransactionservice/src/postgres"
 	"github.com/kusfo/highperformancetransactionservice/src/profile"
 	"github.com/kusfo/highperformancetransactionservice/src/sessions"
 	"github.com/kusfo/highperformancetransactionservice/src/userapi"
@@ -26,26 +24,11 @@ func run() error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	if os.Getenv("DATABASE_URL") == "" {
-		return errors.New("database configuration required")
-	}
-	poolConfig, err := pgxpool.ParseConfig(os.Getenv("DATABASE_URL"))
+	pool, err := postgres.OpenRuntimePool(ctx, os.Getenv("DATABASE_URL"), postgres.IdentityRole)
 	if err != nil {
-		return errors.New("invalid database configuration")
-	}
-	// Keep connection attempts bounded even when a request is cancelled.
-	poolConfig.ConnConfig.ConnectTimeout = 5 * time.Second
-	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
-	if err != nil {
-		return errors.New("database initialization failed")
+		return err
 	}
 	defer pool.Close()
-	startup, cancel := context.WithTimeout(ctx, 5*time.Second)
-	err = pool.Ping(startup)
-	cancel()
-	if err != nil {
-		return errors.New("database unavailable")
-	}
 	routes := userapi.NewHandlerWithLifecycle(users.NewRepository(pool), login.NewService(pool, nil), sessions.NewRepository(pool, nil), profile.NewService(pool))
 	runtime, err := httpapi.New(cfg, routes, os.Stdout)
 	if err != nil {
